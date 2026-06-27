@@ -423,20 +423,41 @@ document.getElementById("mbg").addEventListener("click",function(e){if(e.target=
 
 // ===== WHATSAPP =====
 function waOpen(ph,msg){var c=ph.replace(/\D/g,"");if(!c){toast("⚠️ Phone nahi hai!");return}window.open("https://wa.me/"+c+"?text="+encodeURIComponent(msg),"_blank")}
+// Intro message for a simple (non-group) member
 function introMsg(mid){
   var m=mById(mid);if(!m)return"";
   var mons=getMonths(mid);
   var msg="Assalam o Alaikum "+m.name+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n";
-  if(isGrp(m)){
-    msg+="👥 Group contribution:\n";
-    for(var i=0;i<m.contributors.length;i++)msg+="  • "+m.contributors[i].name+": Rs. "+fmt(m.contributors[i].amount)+"\n";
-    msg+="💰 Total: Rs. "+fmt(memMonthly(m))+"/mo\n";
-  }else{
-    msg+="💰 Monthly: Rs. "+fmt(memMonthly(m))+"\n";
+  msg+="💰 Monthly: Rs. "+fmt(memMonthly(m))+"\n";
+  if(mons.length===1){
+    msg+="🎯 Committee Month: "+mons[0].month+" → Payout: Rs. "+fmt(mons[0].amount*13)+"\n";
+  } else if(mons.length>1){
+    msg+="🎯 Aapki Committee:\n";
+    for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Payout: Rs. "+fmt(mons[i].amount*13)+"\n";
   }
-  if(mons.length===1){msg+="🎯 Committee Month: "+mons[0].month+" → Rs. "+fmt(mons[0].amount*13)+"\n";}
-  else if(mons.length>1){msg+="🎯 Committee:\n";for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(mons[i].amount*13)+"\n";}
-  msg+="\n⚠️ Har mahine 5 tareekh tak jama karwa dein.\n\nShukriya! 🙏";
+  msg+="\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
+  return msg;
+}
+// Intro message for individual contributor inside a group
+function contribIntroMsg(contribName, contribAmount, groupMid){
+  var mons=getMonths(groupMid);
+  var msg="Assalam o Alaikum "+contribName+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n";
+  msg+="💰 Monthly Contribution: Rs. "+fmt(contribAmount)+"\n";
+  if(mons.length===1){
+    // Contributor's share of payout = their proportion
+    var payout=mons[0].amount*13;
+    var share=Math.round(contribAmount/mons[0].amount*payout);
+    msg+="🎯 Committee Month: "+mons[0].month+"\n";
+    msg+="   Aapka share: Rs. "+fmt(share)+"\n";
+  } else if(mons.length>1){
+    msg+="🎯 Aapki Committee:\n";
+    for(var i=0;i<mons.length;i++){
+      var payout=mons[i].amount*13;
+      var share=Math.round(contribAmount/mons[i].amount*payout);
+      msg+="  "+(i+1)+". "+mons[i].month+" → Aapka share: Rs. "+fmt(share)+"\n";
+    }
+  }
+  msg+="\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
   return msg;
 }
 
@@ -721,27 +742,57 @@ document.addEventListener("click",function(e){
   else if(act==="mubarak"){var m=mById(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}waOpen(m.phone,mubMsg(m.name,schedule[mi].month,parseInt(btn.dataset.total)))}
   else if(act==="intro"){
     var m=mById(mid);if(!m)return;
-    var ph=m.phone;
-    if(!ph){
-      // If group, try first contributor with phone
-      if(isGrp(m)){for(var i=0;i<m.contributors.length;i++)if(m.contributors[i].phone){ph=m.contributors[i].phone;break}}
-      if(!ph){toast("⚠️ Phone add karein!");return}
+    if(!isGrp(m)){
+      // Simple member — one message
+      if(!m.phone){toast("⚠️ Phone add karein!");return}
+      introSent[mid]=true;sv();
+      waOpen(m.phone,introMsg(mid));
+      toast("📣 Intro sent to "+m.name);reRender();
+    } else {
+      // Group — send individual message to each contributor with a phone
+      var sent=0;
+      for(var i=0;i<m.contributors.length;i++){
+        var c=m.contributors[i];
+        if(!c.phone)continue;
+        (function(c,d){setTimeout(function(){
+          waOpen(c.phone, contribIntroMsg(c.name, c.amount, mid));
+        },d)})(c, sent*1200);
+        sent++;
+      }
+      if(!sent){toast("⚠️ Contributors ke phone numbers nahi hain!");return}
+      introSent[mid]=true;sv();
+      setTimeout(function(){reRender()},sent*1200+200);
+      toast("📣 "+sent+" contributors ko intro bheja...");
     }
-    introSent[mid]=true;sv();waOpen(ph,introMsg(mid));toast("📣 Intro sent to "+m.name);reRender();
   }
   else if(act==="introall"){
-    var wm=members.filter(function(m){return m.phone||(isGrp(m)&&m.contributors.some(function(c){return c.phone}))});
-    if(!wm.length){toast("⚠️ Kisi ka phone nahi!");return}
-    for(var i=0;i<wm.length;i++){
-      (function(m,d){setTimeout(function(){
-        var ph=m.phone;
-        if(!ph&&isGrp(m))for(var j=0;j<m.contributors.length;j++)if(m.contributors[j].phone){ph=m.contributors[j].phone;break}
-        if(!ph)return;
-        introSent[m.id]=true;waOpen(ph,introMsg(m.id));
-      },d)})(wm[i],i*1300);
+    var delay=0;
+    var sent=0;
+    for(var i=0;i<members.length;i++){
+      var m=members[i];
+      if(!isGrp(m)){
+        if(!m.phone)continue;
+        (function(m,d){setTimeout(function(){
+          introSent[m.id]=true;
+          waOpen(m.phone,introMsg(m.id));
+        },d)})(m,delay);
+        delay+=1300;sent++;
+      } else {
+        // Group: each contributor gets their own message
+        for(var j=0;j<m.contributors.length;j++){
+          var c=m.contributors[j];
+          if(!c.phone)continue;
+          (function(m,c,d){setTimeout(function(){
+            introSent[m.id]=true;
+            waOpen(c.phone, contribIntroMsg(c.name, c.amount, m.id));
+          },d)})(m,c,delay);
+          delay+=1300;sent++;
+        }
+      }
     }
-    setTimeout(function(){sv();reRender()},wm.length*1300+200);
-    toast("📣 "+wm.length+" intro messages...");
+    if(!sent){toast("⚠️ Kisi ka phone nahi!");return}
+    setTimeout(function(){sv();reRender()},delay+200);
+    toast("📣 "+sent+" intro messages...");
   }
   else if(act==="confirmpayout"){payouts[mi]={confirmed:true,date:tdy()};sv();R.home();toast("💸 Transfer confirmed!")}
   else if(act==="assignmonth"){openAssignMonth(mid)}
