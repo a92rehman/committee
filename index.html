@@ -596,7 +596,7 @@ R.members=function(){
       for(var j=0;j<m.contributors.length;j++){var c=m.contributors[j];contribHtml+='<div style="font-size:11px;color:var(--t2);padding:2px 0">• '+c.name+' — Rs. '+fmt(c.amount)+(c.phone?' ('+c.phone+')':'')+'</div>';}
       contribHtml+='</div>';
     }
-    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(memMonthly(m))+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+' '+grpBadge+'</div>'+contribHtml+'</div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="intro" data-mid="'+m.id+'">'+(introSent[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+(m.phone?'<button class="bi" data-act="chatmem" data-mid="'+m.id+'">💬</button>':'')+'<button class="bi" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
+    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(memMonthly(m))+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+' '+grpBadge+'</div>'+contribHtml+'</div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignmonth" data-mid="'+m.id+'">📅 Month</button><button class="bi" style="flex:1" data-act="intro" data-mid="'+m.id+'">'+(introSent[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+(m.phone?'<button class="bi" data-act="chatmem" data-mid="'+m.id+'">💬</button>':'')+'<button class="bi" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
   }
   root.innerHTML=h;
 };
@@ -719,7 +719,8 @@ document.addEventListener("click",function(e){
     toast("📣 "+wm.length+" intro messages...");
   }
   else if(act==="confirmpayout"){payouts[mi]={confirmed:true,date:tdy()};sv();R.home();toast("💸 Transfer confirmed!")}
-  else if(act==="addmem"){openMemForm(null)}
+  else if(act==="assignmonth"){openAssignMonth(mid)}
+  else if(act==="saveAssignMonth"){saveAssignMonth(btn.dataset.mid)}
   else if(act==="editmem"){openMemForm(mid)}
   else if(act==="chatmem"){var m=mById(mid);if(m&&m.phone)waOpen(m.phone,"Assalam o Alaikum!")}
   else if(act==="delmem"){confirmDel(mid)}
@@ -789,6 +790,51 @@ function updateContribTotal(){
   for(var i=0;i<amts.length;i++)total+=parseInt(amts[i].value)||0;
   var el=document.getElementById("contrib-total");
   if(el)el.textContent="Total: Rs. "+Number(total).toLocaleString("en-PK");
+}
+function openAssignMonth(mid){
+  var m=mById(mid);if(!m)return;
+  var mons=getMonths(mid);
+  var assigned=mons.map(function(mn){return mn.idx});
+
+  // build month list with checkboxes
+  var rows='';
+  for(var i=0;i<schedule.length;i++){
+    var s=schedule[i];
+    var isAssigned=assigned.indexOf(i)!==-1;
+    // find current amount if assigned
+    var curAmt=0;
+    for(var j=0;j<s.receivers.length;j++)if(s.receivers[j].mid===mid)curAmt=s.receivers[j].amount;
+    rows+='<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f3ed">';
+    rows+='<input type="checkbox" id="am-'+i+'" '+(isAssigned?'checked':'')+'style="width:18px;height:18px;cursor:pointer;accent-color:var(--g)">';
+    rows+='<div style="flex:1"><div style="font-size:13px;font-weight:600">'+s.month+'</div>';
+    if(s.receivers.length>0&&!isAssigned){var others=s.receivers.map(function(r){return mName(r.mid)}).join(', ');rows+='<div style="font-size:11px;color:var(--t3)">Already: '+others+'</div>';}
+    rows+='</div>';
+    rows+='<input type="number" id="aa-'+i+'" placeholder="Amount" value="'+(isAssigned?curAmt:memMonthly(m))+'" style="width:90px;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit" inputmode="numeric">';
+    rows+='</div>';
+  }
+
+  openM(
+    '<div class="mdl-head"><h3>📅 '+m.name+' ke Months</h3><div class="mdl-desc">Tick karein jis month mein committee hai</div></div>'+
+    '<div class="mdl-body"><div style="max-height:55vh;overflow-y:auto">'+rows+'</div></div>'+
+    '<div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveAssignMonth" data-mid="'+mid+'">Save</button></div>'
+  );
+}
+
+function saveAssignMonth(mid){
+  var m=mById(mid);if(!m)return;
+  for(var i=0;i<schedule.length;i++){
+    var chk=document.getElementById('am-'+i);
+    var amtInp=document.getElementById('aa-'+i);
+    if(!chk||!amtInp)continue;
+    var wantsAssigned=chk.checked;
+    var amt=parseInt(amtInp.value)||memMonthly(m);
+    // remove member from this month first
+    schedule[i].receivers=schedule[i].receivers.filter(function(r){return r.mid!==mid});
+    // add back if checked
+    if(wantsAssigned)schedule[i].receivers.push({mid:mid,amount:amt});
+  }
+  sv();closeM();R.members();
+  toast("✅ Months updated — "+m.name);
 }
 function openMemForm(mid){
   var m=mid?mById(mid):{name:"",monthly:50000,phone:"",contributors:[]};if(!m)return;
