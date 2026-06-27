@@ -421,7 +421,7 @@ function introMsg(mid){
     for(var i=0;i<m.contributors.length;i++)msg+="  • "+m.contributors[i].name+": Rs. "+fmt(m.contributors[i].amount)+"\n";
     msg+="💰 Total: Rs. "+fmt(memMonthly(m))+"/mo\n";
   }else{
-    msg+="💰 Monthly: Rs. "+fmt(m.monthly)+"\n";
+    msg+="💰 Monthly: Rs. "+fmt(memMonthly(m))+"\n";
   }
   if(mons.length===1){msg+="🎯 Committee Month: "+mons[0].month+" → Rs. "+fmt(mons[0].amount*13)+"\n";}
   else if(mons.length>1){msg+="🎯 Committee:\n";for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(mons[i].amount*13)+"\n";}
