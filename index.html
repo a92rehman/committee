@@ -9,29 +9,40 @@
 <title>Committee Manager</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--g:#0f5d3f;--g2:#0a4a32;--gl:#e6f2ec;--gold:#c8932e;--gold-l:#fdf6e8;--r:#c0392b;--o:#d97e2e;--wa:#25D366;--bg:#f7f6f2;--card:#fff;--line:#e8e6df;--t1:#1a1a1a;--t2:#5a5a5a;--t3:#9a9a9a}
+:root{--g:#0f5d3f;--g2:#0a4a32;--gl:#e6f2ec;--gold:#c8932e;--gold-l:#fdf6e8;--r:#c0392b;--rl:#fde8e6;--o:#d97e2e;--ol:#fdeede;--wa:#25D366;--bg:#f7f6f2;--card:#fff;--line:#e8e6df;--t1:#1a1a1a;--t2:#5a5a5a;--t3:#9a9a9a}
 html,body{background:var(--bg)}
 body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--t1);min-height:100vh;max-width:520px;margin:0 auto;padding-bottom:72px;-webkit-font-smoothing:antialiased}
 [data-act]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 
-.hdr{background:linear-gradient(160deg,var(--g),var(--g2));color:#fff;padding:20px 16px 16px}
+.hdr{background:linear-gradient(160deg,var(--g),var(--g2));color:#fff;padding:20px 16px 14px}
 .hdr-row{display:flex;justify-content:space-between;align-items:center}
 .hdr-brand{display:flex;align-items:center;gap:10px}
 .hdr-ico{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:17px}
 .hdr h1{font-size:16px;font-weight:700}
-.hdr small{display:block;font-size:11px;opacity:.75;margin-top:1px;font-weight:400}
-.hdr-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:17px;cursor:pointer}
-
+.hdr-sub{display:flex;align-items:center;gap:7px;margin-top:2px}
+.hdr small{font-size:11px;opacity:.75;font-weight:400}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#aaa;flex-shrink:0;transition:background .3s}
+.sync-dot.ok{background:#4ade80}.sync-dot.syncing{background:#fbbf24;animation:pulse .8s infinite}.sync-dot.err{background:#f87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hdr-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:17px;cursor:pointer;flex-shrink:0}
 .nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;display:flex;background:#fff;border-top:1px solid var(--line);z-index:100;padding:4px 0 calc(env(safe-area-inset-bottom,0px)+4px)}
 .nav-btn{flex:1;border:none;background:none;padding:8px 4px 4px;font-size:10px;color:var(--t3);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;font-weight:500}
 .nav-btn.on{color:var(--g);font-weight:700}
 .nav-btn i{font-style:normal;font-size:18px}
-
+.loading{position:fixed;inset:0;background:linear-gradient(160deg,var(--g),var(--g2));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;color:#fff}
+.loading .ico{font-size:48px;margin-bottom:16px}
+.loading h2{font-size:18px;font-weight:700;margin-bottom:8px}
+.loading p{font-size:13px;opacity:.8}
+.spinner{width:28px;height:28px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-top:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
 .ct{padding:14px}
 .pg{display:none}.pg.on{display:block}
-
 .card{background:var(--card);border-radius:13px;padding:14px 15px;margin-bottom:10px;border:1px solid var(--line)}
-
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+.shdr{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 12px}
+.shdr h3{font-size:15px;font-weight:700}
+.shdr small{font-size:11px;color:var(--t3);display:block;margin-top:1px}
+.sbtn{background:var(--g);color:#fff;border:none;padding:7px 13px;border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit}
 .hero{background:linear-gradient(145deg,var(--g),var(--g2));color:#fff;padding:18px;border:none;overflow:hidden;position:relative}
 .hero::before{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;background:rgba(200,147,46,.12)}
 .hero-lbl{font-size:10px;opacity:.8;text-transform:uppercase;letter-spacing:1px;font-weight:600}
@@ -40,110 +51,173 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--t1);m
 .hero-stat{position:relative;float:right;background:rgba(255,255,255,.13);padding:5px 10px;border-radius:9px;text-align:center}
 .hero-stat b{display:block;font-size:16px}
 .hero-stat small{font-size:9px;opacity:.85;text-transform:uppercase;letter-spacing:.5px}
-
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
 .sl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
 .sv{font-size:17px;font-weight:700;margin-top:4px}
 .cg{color:var(--g)}.co{color:var(--o)}.cgd{color:var(--gold)}
-
-.shdr{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 12px}
-.shdr h3{font-size:15px;font-weight:700}
-.shdr small{font-size:11px;color:var(--t3);display:block;margin-top:1px}
-.sbtn{background:var(--g);color:#fff;border:none;padding:7px 13px;border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit}
-
-.av{width:34px;height:34px;border-radius:50%;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
-.av.gd{background:var(--gold-l);color:var(--gold)}
-
+.deadline{border-radius:11px;padding:11px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;border:1px solid transparent}
+.deadline.ok{background:#e6f2ec;border-color:#b6d9c7}
+.deadline.warn{background:var(--ol);border-color:#f5c99a}
+.deadline.late{background:var(--rl);border-color:#f5b8b3}
+.deadline .dl-ico{font-size:20px;flex-shrink:0}
+.deadline .dl-txt{font-size:13px;font-weight:600}
+.deadline .dl-sub{font-size:11px;margin-top:1px;opacity:.75}
 .row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f5f3ed;gap:9px}
 .row:last-child{border-bottom:none}
 .rn{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ra{font-size:11px;color:var(--t3);margin-top:1px}
-
+/* Contributor sub-row */
+.c-row{display:flex;align-items:center;padding:7px 0 7px 14px;border-bottom:1px solid #f9f7f2;gap:8px;background:transparent}
+.c-row:last-child{border-bottom:none}
+.c-line{width:2px;height:100%;background:var(--line);flex-shrink:0}
+.av{width:34px;height:34px;border-radius:50%;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.av.gd{background:var(--gold-l);color:var(--gold)}
+.av.sm{width:26px;height:26px;font-size:10px;background:#f5f3ed;color:var(--t2)}
+.badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:600;margin:2px 3px 0 0}
+.bg-g{background:var(--gl);color:var(--g)}.bg-gd{background:var(--gold-l);color:var(--gold)}
+.bg-r{background:var(--rl);color:var(--r)}.bg-o{background:var(--ol);color:var(--o)}
+.bg-b{background:#e8f0fe;color:#2563eb}.bg-pu{background:#f3e8ff;color:#7c3aed}
 .chk{width:28px;height:28px;border-radius:8px;border:2px solid #d5d2c9;background:#fff;cursor:pointer;font-size:14px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit}
 .chk.on{background:var(--g);border-color:var(--g)}
-
+.chk.sm{width:22px;height:22px;border-radius:6px;font-size:11px}
 .bwa{background:var(--wa);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;font-family:inherit}
 .bwf{width:100%;padding:12px;background:var(--wa);color:#fff;border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;font-family:inherit}
 .bp{background:var(--g);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
 .bs{background:#f0ede4;color:var(--t1);border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
-.bd{background:#fde8e6;color:var(--r);border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
-.bi{background:#f5f3ed;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;color:var(--t2);font-family:inherit}
-
-.sel{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);font-size:14px;background:#fff;color:var(--t1);margin-bottom:10px;font-family:inherit;font-weight:600;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a5a' fill='none' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
-
+.bd{background:var(--rl);color:var(--r);border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
+.bi{background:#f5f3ed;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--t2);font-family:inherit}
+.btn-tf{width:100%;padding:12px;background:var(--g);color:#fff;border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;font-family:inherit}
 .prog{height:6px;background:#eee;border-radius:99px;overflow:hidden;margin-top:7px}
 .pb{height:100%;border-radius:99px;transition:width .4s}
-
+/* Group progress mini */
+.mini-prog{height:3px;background:#eee;border-radius:99px;overflow:hidden;margin-top:3px;width:60px}
+.mini-pb{height:100%;border-radius:99px;background:var(--g)}
 .inp{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);font-size:14px;background:#fff;color:var(--t1);font-family:inherit}
 .inp:focus{outline:none;border-color:var(--g)}
+.sel{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);font-size:14px;background:#fff;color:var(--t1);margin-bottom:10px;font-family:inherit;font-weight:600;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a5a' fill='none' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
 .lbl{display:block;font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
 .fld{margin-bottom:13px}
-
-.badge{display:inline-block;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:600;margin:2px 3px 0 0}
-.badge-gd{background:var(--gold-l);color:var(--gold)}
-.badge-r{background:#fde8e6;color:var(--r)}
-.badge-g{background:var(--gl);color:var(--g)}
-
-/* Timeline */
+.ta{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);font-size:13px;background:#fff;color:var(--t1);font-family:inherit;resize:vertical;min-height:70px}
+.ta:focus{outline:none;border-color:var(--g)}
+/* Contributor form row in modal */
+.cf-row{background:#f9f7f1;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--line)}
+.cf-row .cf-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cf-row .cf-ttl{font-size:12px;font-weight:700;color:var(--t2)}
 .tl-card{border-left:3px solid var(--line);padding:12px 12px 12px 11px}
 .tl-card.cur{border-left-color:var(--gold);background:linear-gradient(to right,#fdf6e8,#fff 60%)}
-.tl-card.past{opacity:.5}
+.tl-card.past{opacity:.6}
 .tl-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3)}
 .tl-card.cur .tl-tag{color:var(--gold)}
 .tl-mo{font-size:15px;font-weight:700;margin:2px 0}
-
+.note-empty{font-size:11px;color:var(--t3);margin-top:6px;font-style:italic}
+.note-box{margin-top:8px;padding:7px 10px;background:#f9f7f0;border-radius:8px;font-size:12px;color:var(--t2);border:1px solid var(--line)}
 /* Modal */
-.mbg{position:fixed;inset:0;background:rgba(20,20,20,.55);z-index:300;display:none;align-items:flex-end;justify-content:center}
-.mbg.show{display:flex}
-.mdl{background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px)+20px);max-height:85vh;overflow-y:auto}
-.mdl-bar{width:38px;height:4px;background:#ddd;border-radius:99px;margin:0 auto 13px}
-.mdl h3{font-size:17px;font-weight:700;margin-bottom:13px}
-.mdl-btns{display:flex;gap:8px;margin-top:8px}
-.mdl-btns button{flex:1}
-
-.sr{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer}
+.mbg{position:fixed;inset:0;background:rgba(15,15,15,.6);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.mbg.show{display:flex;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.mdl{
+  background:#fff;width:100%;max-width:520px;
+  border-radius:22px 22px 0 0;
+  padding:0 0 calc(env(safe-area-inset-bottom,0px)+24px);
+  max-height:92vh;overflow-y:auto;
+  box-shadow:0 -4px 32px rgba(0,0,0,.12);
+  animation:slideUp .25s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.mdl-bar{width:40px;height:4px;background:#e0ddd6;border-radius:99px;margin:12px auto 0}
+.mdl-head{padding:16px 20px 14px;border-bottom:1px solid var(--line)}
+.mdl h3{font-size:18px;font-weight:700;letter-spacing:-.3px;color:var(--t1);margin:0}
+.mdl-desc{font-size:13px;color:var(--t2);line-height:1.5;margin-top:6px}
+.mdl-body{padding:16px 20px}
+.mdl-btns{display:flex;gap:8px;padding:0 20px 4px;margin-top:4px}
+.mdl-btns button{flex:1;padding:13px}
+/* Settings rows */
+.sr{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;transition:background .1s}
 .sr:not(:last-child){border-bottom:1px solid #f5f3ed}
-.sr:active{background:#f9f7f1}
-.sr-i{width:34px;height:34px;border-radius:9px;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.sr.dng .sr-i{background:#fde8e6;color:var(--r)}
-
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--t1);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:400;pointer-events:none;max-width:calc(100% - 32px);opacity:0;transition:opacity .3s}
+.sr:active{background:#f7f5f0}
+.sr-i{width:36px;height:36px;border-radius:10px;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sr.dng .sr-i{background:var(--rl);color:var(--r)}
+.sr-ttl{font-size:14px;font-weight:600;color:var(--t1)}
+.sr-desc{font-size:11px;color:var(--t3);margin-top:2px}
+/* Form fields inside modal */
+.fld{margin-bottom:14px}
+.fld:last-of-type{margin-bottom:6px}
+.lbl{display:block;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px}
+.inp{width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid var(--line);font-size:14px;background:#fff;color:var(--t1);font-family:inherit;transition:border-color .15s}
+.inp:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(15,93,63,.08)}
+.sel{width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid var(--line);font-size:14px;background:#fff;color:var(--t1);font-family:inherit;font-weight:600;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a5a' fill='none' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;transition:border-color .15s;margin-bottom:10px}
+.sel:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(15,93,63,.08)}
+.ta{width:100%;padding:12px 14px;border-radius:11px;border:1.5px solid var(--line);font-size:13px;background:#fff;color:var(--t1);font-family:inherit;resize:vertical;min-height:80px;transition:border-color .15s;line-height:1.5}
+.ta:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px rgba(15,93,63,.08)}
+/* Buttons */
+.bp{background:var(--g);color:#fff;border:none;border-radius:11px;padding:13px 18px;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px;transition:background .15s}
+.bp:active{background:var(--g2)}
+.bs{background:#f0ede4;color:var(--t1);border:none;border-radius:11px;padding:13px 18px;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px}
+.bs:active{background:#e5e0d4}
+.bd{background:var(--rl);color:var(--r);border:none;border-radius:11px;padding:13px 18px;font-weight:600;cursor:pointer;font-family:inherit;font-size:14px}
+/* Info / warning box in modal */
+.mdl-warn{background:var(--ol);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--o);line-height:1.5;margin-bottom:14px}
+.mdl-info{background:var(--gl);border-radius:10px;padding:11px 14px;font-size:12px;color:var(--g);line-height:1.5;margin-bottom:14px}
+/* Section label in settings */
+.set-sec{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.9px;padding:0 2px;margin:16px 0 7px}
+.set-sec:first-child{margin-top:0}
+/* Contributor form rows */
+.cf-row{background:#f9f7f1;border-radius:11px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--line)}
+.cf-row .cf-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cf-row .cf-ttl{font-size:12px;font-weight:700;color:var(--t2)}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--t1);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:400;pointer-events:none;max-width:calc(100% - 32px);opacity:0;transition:opacity .3s;white-space:nowrap}
 .toast.vis{opacity:1}
-
-.done{text-align:center;padding:20px;background:linear-gradient(135deg,var(--gl),#fff);border:1px solid var(--gl)}
-.done .big{font-size:30px}
+.done{text-align:center;padding:18px;background:linear-gradient(135deg,var(--gl),#fff);border:1px solid var(--gl)}
+.done .big{font-size:28px}
 .done p{margin-top:7px;font-weight:700;color:var(--g);font-size:14px}
 .done .sub{font-weight:500;color:var(--t2);font-size:12px;margin-top:3px}
-
 .pnd-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
 .pnd-h span:first-child{font-size:13px;font-weight:700;color:var(--o)}
-.pnd-ct{background:#fdeede;color:var(--o);padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
-
+.pnd-ct{background:var(--ol);color:var(--o);padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
 .file-inp{display:none}
 .rec-r{display:flex;gap:6px;align-items:center;margin-bottom:6px}
-.rec-r .inp,.rec-r .sel{padding:8px 11px;font-size:13px;margin:0}
+.rec-r .inp,.rec-r .sel{padding:9px 11px;font-size:13px;margin:0}
+.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.toggle-lbl{font-size:13px;font-weight:600;color:var(--t2)}
+.toggle{position:relative;width:42px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:99px;cursor:pointer;transition:.2s}
+.toggle input:checked+.toggle-slider{background:var(--g)}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.toggle-slider:before{transform:translateX(18px)}
 </style>
 </head>
 <body ontouchstart="">
 
+<div class="loading" id="loading">
+  <div class="ico">🏦</div>
+  <h2>Committee Manager</h2>
+  <p>Data load ho raha hai...</p>
+  <div class="spinner"></div>
+</div>
+
+<div id="app" style="display:none">
 <div class="hdr"><div class="hdr-row">
-  <div class="hdr-brand"><div class="hdr-ico">🏦</div><div><h1>Committee Manager</h1><small>13 Months • Jul 2026 – Jul 2027</small></div></div>
+  <div class="hdr-brand">
+    <div class="hdr-ico">🏦</div>
+    <div>
+      <h1>Committee Manager</h1>
+      <div class="hdr-sub"><div class="sync-dot" id="sync-dot"></div><small id="sync-lbl">Connecting...</small></div>    </div>
+  </div>
   <button class="hdr-btn" data-act="settings">⚙</button>
 </div></div>
-
 <div class="ct">
   <div id="pg-home" class="pg on"></div>
   <div id="pg-timeline" class="pg"></div>
   <div id="pg-members" class="pg"></div>
   <div id="pg-payments" class="pg"></div>
 </div>
-
 <nav class="nav" id="nav">
   <button class="nav-btn on" data-tab="home"><i>🏠</i>Home</button>
   <button class="nav-btn" data-tab="timeline"><i>📅</i>Timeline</button>
   <button class="nav-btn" data-tab="members"><i>👥</i>Members</button>
   <button class="nav-btn" data-tab="payments"><i>💰</i>Payments</button>
 </nav>
+</div>
 
 <div class="toast" id="toast"></div>
 <div class="mbg" id="mbg"><div class="mdl" id="mdl"></div></div>
@@ -151,25 +225,24 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--t1);m
 
 <script>
 (function(){
+'use strict';
+var FB_URL='https://committee-app-123-default-rtdb.firebaseio.com/committee';
 
-var MONTHS = ["July 2026","Aug 2026","Sep 2026","Oct 2026","Nov 2026","Dec 2026","Jan 2027","Feb 2027","Mar 2027","Apr 2027","May 2027","Jun 2027","Jul 2027"];
-
-var DEF_MEM = [
-  {id:"m1",name:"AB",monthly:50000,phone:""},
-  {id:"m2",name:"AD",monthly:50000,phone:""},
-  {id:"m3",name:"Mamo Amir",monthly:50000,phone:""},
-  {id:"m4",name:"Bhai Amanullah",monthly:50000,phone:""},
-  {id:"m5",name:"Mamo Naveed",monthly:80000,phone:""},
-  {id:"m6",name:"Miss Mamona",monthly:100000,phone:""},
-  {id:"m7",name:"Mama Amjad",monthly:50000,phone:""},
-  {id:"m8",name:"Miss Iffat",monthly:100000,phone:""},
-  {id:"m9",name:"Miss Abida",monthly:25000,phone:""},
-  {id:"m10",name:"Sidi Farah",monthly:15000,phone:""},
-  {id:"m11",name:"Miss Nazish",monthly:30000,phone:""},
-  {id:"m12",name:"Mis Usma + Iqra",monthly:10000,phone:""}
+var DEF_MEM=[
+  {id:"m1",name:"AB",monthly:50000,phone:"",contributors:[]},
+  {id:"m2",name:"AD",monthly:50000,phone:"",contributors:[]},
+  {id:"m3",name:"Mamo Amir",monthly:50000,phone:"",contributors:[]},
+  {id:"m4",name:"Bhai Amanullah",monthly:50000,phone:"",contributors:[]},
+  {id:"m5",name:"Mamo Naveed",monthly:80000,phone:"",contributors:[]},
+  {id:"m6",name:"Miss Mamona",monthly:100000,phone:"",contributors:[]},
+  {id:"m7",name:"Mama Amjad",monthly:50000,phone:"",contributors:[]},
+  {id:"m8",name:"Miss Iffat",monthly:100000,phone:"",contributors:[]},
+  {id:"m9",name:"Miss Abida",monthly:25000,phone:"",contributors:[]},
+  {id:"m10",name:"Sidi Farah",monthly:15000,phone:"",contributors:[]},
+  {id:"m11",name:"Miss Nazish",monthly:30000,phone:"",contributors:[]},
+  {id:"m12",name:"Mis Usma + Iqra",monthly:10000,phone:"",contributors:[]}
 ];
-
-var DEF_SCH = [
+var DEF_SCH=[
   {month:"July 2026",receivers:[{mid:"m1",amount:50000}]},
   {month:"Aug 2026",receivers:[{mid:"m2",amount:50000}]},
   {month:"Sep 2026",receivers:[{mid:"m3",amount:50000}]},
@@ -186,94 +259,172 @@ var DEF_SCH = [
 ];
 
 function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):JSON.parse(JSON.stringify(d))}catch(e){return JSON.parse(JSON.stringify(d))}}
+var MONTHS_SHORT=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var MONTHS_FULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-var members = ld("cm3_mem", DEF_MEM);
-var schedule = ld("cm3_sch", DEF_SCH);
-var payments = ld("cm3_pay", {});
-var selMonth = ci();
+var members=ld("cm_mem",DEF_MEM);
+var schedule=ld("cm_sch",DEF_SCH);
+var payments=ld("cm_pay",{});
+var reminders=ld("cm_rem",{});
+var introSent=ld("cm_intro",{});
+var payouts=ld("cm_po",{});
+var notes=ld("cm_notes",{});
+var appSettings=ld("cm_settings",{startYear:2026,startMonth:6,deadlineDay:5,templates:{reminder:"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏",mubarak:"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!"}});
+var selMonth=ci(); // start on current month, shared between home & payments
+var syncTimer=null;
+var isRemote=false;
 
-function sv(){
-  localStorage.setItem("cm3_mem",JSON.stringify(members));
-  localStorage.setItem("cm3_sch",JSON.stringify(schedule));
-  localStorage.setItem("cm3_pay",JSON.stringify(payments));
-}
-
+// ===== UTILS =====
 function fmt(n){return Number(n).toLocaleString("en-PK")}
 function fmtK(n){return n>=100000?(n/100000)+"L":n>=1000?(n/1000)+"k":""+n}
 function ini(s){return s.split(/\s+/).slice(0,2).map(function(w){return w[0]}).join("").toUpperCase()}
 function tdy(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function fmtD(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0].slice(2)}
-function ci(){var d=new Date(),y=d.getFullYear(),m=d.getMonth();if(y===2026&&m>=6)return m-6;if(y===2027&&m<=6)return m+6;return 0}
+function dAgo(s){if(!s)return"";var d=(new Date()-new Date(s))/(864e5);if(d<1)return"aaj";if(d<2)return"kal";return Math.floor(d)+" din pehle"}
+function ci(){
+  var now=new Date(),nY=now.getFullYear(),nM=now.getMonth();
+  var sY=appSettings.startYear,sM=appSettings.startMonth;
+  var diff=(nY-sY)*12+(nM-sM);
+  if(diff<0)return 0;
+  if(diff>=schedule.length)return schedule.length;
+  return diff;
+}
+function genMonthLabel(yr,mo){return MONTHS_SHORT[mo]+" "+yr} // e.g. "Aug 2026"
+function updateScheduleMonths(startYear,startMonth){
+  for(var i=0;i<schedule.length;i++){
+    var y=startYear+Math.floor((startMonth+i)/12);
+    var m=(startMonth+i)%12;
+    schedule[i].month=MONTHS_FULL[m]+" "+y;
+  }
+}
 function gid(){return"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
-function totM(){var s=0;for(var i=0;i<members.length;i++)s+=members[i].monthly;return s}
-
-// Member lookups
+function dlDay(){return appSettings.deadlineDay||5}
+function isLate(){return new Date().getDate()>dlDay()}
+function dlInfo(){var r=dlDay()-new Date().getDate();if(r>3)return{cls:"ok",ico:"✅",txt:r+" din mein deadline",sub:dlDay()+" tareekh tak jama karein"};if(r>0)return{cls:"warn",ico:"⚠️",txt:"Sirf "+r+" din baqi!",sub:"Jaldi karein — "+dlDay()+" tareekh deadline hai"};if(r===0)return{cls:"late",ico:"🔴",txt:"Aaj deadline hai!",sub:dlDay()+" tareekh — abhi jama karwayein"};return{cls:"late",ico:"🔴",txt:Math.abs(r)+" din late!",sub:dlDay()+" tareekh guzar chuki — urgent"}}
+function fillTpl(tpl,name,month,amount){return tpl.replace(/{name}/g,name).replace(/{month}/g,month).replace(/{amount}/g,fmt(amount)).replace(/{deadline}/g,dlDay()+" tareekh")}
+function remMsg(name,month,amt){var tpl=(appSettings.templates&&appSettings.templates.reminder)||"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏";return fillTpl(tpl,name,month,amt)}
+function mubMsg(name,month,tot){var tpl=(appSettings.templates&&appSettings.templates.mubarak)||"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!";return fillTpl(tpl,name,month,tot)}
 function mById(id){for(var i=0;i<members.length;i++)if(members[i].id===id)return members[i];return null}
-function mName(mid){var m=mById(mid);return m?m.name:"Unknown"}
+function mName(mid){var m=mById(mid);return m?m.name:"?"}
+function getMonths(mid){var res=[];for(var i=0;i<schedule.length;i++)for(var j=0;j<schedule[i].receivers.length;j++)if(schedule[i].receivers[j].mid===mid)res.push({idx:i,month:schedule[i].month,amount:schedule[i].receivers[j].amount});return res}
+function mOpts(sel){var h='<option value="">-- Member chunein --</option>';for(var i=0;i<members.length;i++)h+='<option value="'+members[i].id+'"'+(members[i].id===sel?' selected':'')+'>'+members[i].name+'</option>';return h}
+function anyIntroUnsent(){for(var i=0;i<members.length;i++)if(!introSent[members[i].id])return true;return false}
 
-// Schedule lookups
-function getMonths(mid){
-  var res=[];
-  for(var i=0;i<schedule.length;i++)
-    for(var j=0;j<schedule[i].receivers.length;j++)
-      if(schedule[i].receivers[j].mid===mid)
-        res.push({idx:i,month:schedule[i].month,amount:schedule[i].receivers[j].amount});
-  return res;
-}
-
-// Payment helpers
+// ===== GROUP / CONTRIBUTOR HELPERS =====
+function isGrp(mem){return mem.contributors&&mem.contributors.length>0}
+function memMonthly(mem){if(isGrp(mem))return mem.contributors.reduce(function(s,c){return s+(+c.amount||0)},0);return +mem.monthly||0}
+// Is simple member paid?
 function isPd(mi,mid){return!!payments[mi+"-"+mid]}
-function payInf(mi,mid){var v=payments[mi+"-"+mid];if(!v)return null;return typeof v==="object"?v:{paid:true,date:""}}
-function pdCt(mi){var c=0;for(var i=0;i<members.length;i++)if(isPd(mi,members[i].id))c++;return c}
-function unp(mi){return members.filter(function(m){return!isPd(mi,m.id)})}
-function pdAmt(mi){var s=0;for(var i=0;i<members.length;i++)if(isPd(mi,members[i].id))s+=members[i].monthly;return s}
+// Is contributor paid?
+function isCPd(mi,mid,cid){return!!payments[mi+"-"+mid+"-"+cid]}
+function getCPay(mi,mid,cid){var v=payments[mi+"-"+mid+"-"+cid];if(!v)return null;return typeof v==="object"?v:{paid:true,date:""}}
+// Is member fully paid (handles groups)?
+function isMemPd(mi,mem){
+  if(!isGrp(mem))return isPd(mi,mem.id);
+  for(var i=0;i<mem.contributors.length;i++)if(!isCPd(mi,mem.id,mem.contributors[i].id))return false;
+  return true;
+}
+// Amount paid for this member in month mi
+function memPdAmt(mi,mem){
+  if(!isGrp(mem))return isPd(mi,mem.id)?memMonthly(mem):0;
+  var s=0;for(var i=0;i<mem.contributors.length;i++)if(isCPd(mi,mem.id,mem.contributors[i].id))s+=(+mem.contributors[i].amount||0);return s;
+}
+function totM(){return members.reduce(function(s,m){return s+memMonthly(m)},0)}
+function pdCt(mi){return members.filter(function(m){return isMemPd(mi,m)}).length}
+function unp(mi){return members.filter(function(m){return!isMemPd(mi,m)})}
+function pdAmt(mi){return members.reduce(function(s,m){return s+memPdAmt(mi,m)},0)}
+function getRem(mi,mid){return reminders[mi+"-"+mid]||{count:0,lastDate:""}}
+function getCRem(mi,mid,cid){return reminders[mi+"-"+mid+"-"+cid]||{count:0,lastDate:""}}
 
-// Member dropdown HTML
-function mOpts(sel){
-  var h='<option value="">-- Member chunein --</option>';
-  for(var i=0;i<members.length;i++)
-    h+='<option value="'+members[i].id+'"'+(members[i].id===sel?' selected':'')+'>'+members[i].name+'</option>';
-  return h;
+// ===== SAVE =====
+function lvSave(){
+  localStorage.setItem("cm_mem",JSON.stringify(members));
+  localStorage.setItem("cm_sch",JSON.stringify(schedule));
+  localStorage.setItem("cm_pay",JSON.stringify(payments));
+  localStorage.setItem("cm_rem",JSON.stringify(reminders));
+  localStorage.setItem("cm_intro",JSON.stringify(introSent));
+  localStorage.setItem("cm_po",JSON.stringify(payouts));
+  localStorage.setItem("cm_notes",JSON.stringify(notes));
+  localStorage.setItem("cm_settings",JSON.stringify(appSettings));
+}
+function allData(){return{members:members,schedule:schedule,payments:payments,reminders:reminders,introSent:introSent,payouts:payouts,notes:notes,appSettings:appSettings}}
+function applyData(data){
+  if(!data||!data.members||!data.members.length)return false;
+  members=data.members;schedule=data.schedule;
+  payments=data.payments||{};reminders=data.reminders||{};
+  introSent=data.introSent||{};payouts=data.payouts||{};notes=data.notes||{};
+  if(data.appSettings)appSettings=data.appSettings;
+  // ensure contributors field
+  for(var i=0;i<members.length;i++)if(!members[i].contributors)members[i].contributors=[];
+  return true;
+}
+function sv(){lvSave();if(isRemote)return;clearTimeout(syncTimer);syncTimer=setTimeout(fbSave,700)}
+
+// ===== FIREBASE =====
+function setSS(state,label){
+  var dot=document.getElementById("sync-dot"),lbl=document.getElementById("sync-lbl");
+  if(!dot||!lbl)return;dot.className="sync-dot "+state;
+  lbl.textContent=label||(state==="ok"?"Synced":state==="syncing"?"Syncing...":"Offline");
+}
+function fbSave(){
+  setSS("syncing");
+  fetch(FB_URL+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(allData())})
+    .then(function(r){if(r.ok)setSS("ok");else setSS("err","Sync failed")})
+    .catch(function(){setSS("err","Offline")});
+}
+function fbLoad(){
+  return fetch(FB_URL+'.json').then(function(r){return r.json()}).then(function(data){if(applyData(data))lvSave()});
+}
+function fbListen(){
+  try{
+    var es=new EventSource(FB_URL+'.json');
+    es.addEventListener('put',function(e){
+      try{
+        var d=JSON.parse(e.data).data;if(!d||!d.members)return;
+        if(JSON.stringify(d.payments)===JSON.stringify(payments)&&JSON.stringify(d.members)===JSON.stringify(members))return;
+        isRemote=true;applyData(d);lvSave();setSS("ok");
+        var a=document.querySelector('.pg.on');if(a){var t=a.id.replace('pg-','');if(R[t])R[t]()}
+        toast("🔄 Synced");isRemote=false;
+      }catch(ex){}
+    });
+    es.onerror=function(){setSS("err","Offline")};
+  }catch(ex){setSS("err","Offline")}
 }
 
-// Toast
+// ===== TOAST / MODAL =====
 var _tt;
 function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("vis");clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove("vis")},2400)}
-
-// Modal
-function openM(h){document.getElementById("mdl").innerHTML='<div class="mdl-bar"></div>'+h;document.getElementById("mbg").classList.add("show");document.body.style.overflow="hidden"}
+function openM(h){
+  // h should contain: optional <div class="mdl-head">...</div> then body content
+  // If no mdl-head found, wrap with bar + body
+  document.getElementById("mdl").innerHTML='<div class="mdl-bar"></div>'+h;
+  document.getElementById("mbg").classList.add("show");
+  document.body.style.overflow="hidden";
+}
 function closeM(){document.getElementById("mbg").classList.remove("show");document.body.style.overflow=""}
+document.getElementById("mbg").addEventListener("click",function(e){if(e.target===this)closeM()});
 
-// WhatsApp
-function waOpen(ph,msg){var c=ph.replace(/\D/g,"");if(!c){toast("⚠️ Phone number nahi hai!");return}window.open("https://wa.me/"+c+"?text="+encodeURIComponent(msg),"_blank")}
-function remMsg(name,month,amt){return"Assalam o Alaikum "+name+"!\n\nCommittee ka reminder:\nMonth: "+month+"\nAmount: Rs. "+fmt(amt)+"\n\nBaraye meharbani 5 tareekh tak jama karwa dein. Shukriya! 🙏"}
-function mubMsg(name,month,tot){return"Mubarak ho "+name+"! 🎉\n\nIs mahine ("+month+") committee aap ki hai!\nTotal: Rs. "+fmt(tot)+"\n\nJald transfer ho jayegi. Shukriya!"}
-
+// ===== WHATSAPP =====
+function waOpen(ph,msg){var c=ph.replace(/\D/g,"");if(!c){toast("⚠️ Phone nahi hai!");return}window.open("https://wa.me/"+c+"?text="+encodeURIComponent(msg),"_blank")}
 function introMsg(mid){
   var m=mById(mid);if(!m)return"";
   var mons=getMonths(mid);
-  var msg="Assalam o Alaikum "+m.name+"!\n\n";
-  msg+="Committee shuru ho rahi hai! Yeh aapki details hain:\n\n";
-  msg+="📋 Committee Details:\n";
-  msg+="• Monthly Contribution: Rs. "+fmt(m.monthly)+"\n";
-  if(mons.length===1){
-    msg+="• Aapki Committee: "+mons[0].month+"\n";
-    msg+="• Payout: Rs. "+fmt(mons[0].amount*13)+"\n";
-  } else if(mons.length>1){
-    msg+="• Aapki Committee:\n";
-    for(var i=0;i<mons.length;i++){
-      msg+="  "+String(i+1)+". "+mons[i].month+" ("+fmtK(mons[i].amount)+"/mo → Payout: Rs. "+fmt(mons[i].amount*13)+")\n";
-    }
+  var msg="Assalam o Alaikum "+m.name+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n";
+  if(isGrp(m)){
+    msg+="👥 Group contribution:\n";
+    for(var i=0;i<m.contributors.length;i++)msg+="  • "+m.contributors[i].name+": Rs. "+fmt(m.contributors[i].amount)+"\n";
+    msg+="💰 Total: Rs. "+fmt(memMonthly(m))+"/mo\n";
+  }else{
+    msg+="💰 Monthly: Rs. "+fmt(m.monthly)+"\n";
   }
-  msg+="\n⚠️ Baraye meharbani har mahine ki committee 5 tareekh tak jama karwa dein.\n\nShukriya! 🙏";
+  if(mons.length===1){msg+="🎯 Committee Month: "+mons[0].month+" → Rs. "+fmt(mons[0].amount*13)+"\n";}
+  else if(mons.length>1){msg+="🎯 Committee:\n";for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(mons[i].amount*13)+"\n";}
+  msg+="\n⚠️ Har mahine 5 tareekh tak jama karwa dein.\n\nShukriya! 🙏";
   return msg;
 }
 
 // ===== NAV =====
-document.getElementById("nav").addEventListener("click",function(e){
-  var btn=e.target.closest(".nav-btn");if(!btn)return;go(btn.dataset.tab);
-});
-
+document.getElementById("nav").addEventListener("click",function(e){var btn=e.target.closest(".nav-btn");if(!btn)return;go(btn.dataset.tab)});
 function go(tab){
   var pgs=document.querySelectorAll(".pg");for(var i=0;i<pgs.length;i++)pgs[i].classList.remove("on");
   document.getElementById("pg-"+tab).classList.add("on");
@@ -281,284 +432,537 @@ function go(tab){
   var a=document.querySelector('.nav-btn[data-tab="'+tab+'"]');if(a)a.classList.add("on");
   window.scrollTo(0,0);R[tab]();
 }
+function reRender(){var a=document.querySelector('.pg.on');if(a){var t=a.id.replace('pg-','');if(R[t])R[t]()}}
 
 // ===== RENDERERS =====
-var R = {};
+var R={};
 
-R.home = function(){
+R.home=function(){
   var root=document.getElementById("pg-home"), CI=ci();
-  if(CI>=schedule.length){root.innerHTML='<div class="card done"><div class="big">🎊</div><p>Committee Complete!</p></div>';return}
-  var s=schedule[CI], up=unp(CI), pc=pdCt(CI), TM=totM(), pa=pdAmt(CI);
+  var TM=totM(), totalMonths=schedule.length;
+  // use selMonth for display, but default to current month
+  var mi=selMonth;
+
+  if(totalMonths===0){root.innerHTML='<div class="card done"><div class="big">🎊</div><p>Committee Complete!</p></div>';return}
+
+  // Clamp selMonth
+  if(mi>=totalMonths)mi=selMonth=totalMonths-1;
+  if(mi<0)mi=selMonth=0;
+
+  // ===== OVERALL STATS =====
+  var totalCollected=0, totalExpected=TM*totalMonths;
+  for(var i=0;i<totalMonths;i++) totalCollected+=pdAmt(i);
+  var overallPct=totalExpected?Math.round(totalCollected/totalExpected*100):0;
+  var monthsLeft=totalMonths-CI;
+
+  // ===== SELECTED MONTH =====
+  var s=schedule[mi];
   var recNames=s.receivers.map(function(r){return mName(r.mid)}).join(" + ");
+  var pc=pdCt(mi), pa=pdAmt(mi);
+  var dl=dlInfo();
+  var up=unp(mi);
+  var isCurrent=mi===CI, isPast=mi<CI, isFuture=mi>CI;
 
-  var h='<div class="card hero"><div class="hero-stat"><b>'+pc+'/'+members.length+'</b><small>Paid</small></div><div class="hero-lbl">Current Month</div><h2>'+s.month+'</h2><div class="hero-sub">🎯 '+recNames+'</div></div>';
-  h+='<div class="g2"><div class="card" style="padding:12px 13px"><div class="sl">Monthly Pool</div><div class="sv cg">'+fmt(TM)+'</div></div><div class="card" style="padding:12px 13px"><div class="sl">Collected</div><div class="sv '+(pc===members.length?'cg':'co')+'">'+fmt(pa)+'</div></div></div>';
+  var h='';
 
-  // Intro message card
-  h+='<div class="card" style="background:var(--gold-l);border-color:#e8dcc0"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:700;color:var(--gold)">📣 Introduction Message</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Sab ko committee details bhejein</div></div><button class="bwa" style="background:var(--gold)" data-act="introall">Sab Ko</button></div></div>';
+  // --- Overall progress banner ---
+  h+='<div class="card" style="background:linear-gradient(145deg,var(--g),var(--g2));color:#fff;padding:18px;border:none;position:relative;overflow:hidden">';
+  h+='<div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.07)"></div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">';
+  h+='<div><div style="font-size:10px;opacity:.8;text-transform:uppercase;letter-spacing:1px;font-weight:600">Committee Progress</div>';
+  h+='<div style="font-size:26px;font-weight:800;margin:4px 0;letter-spacing:-.5px">Rs. '+fmt(totalCollected)+'</div>';
+  h+='<div style="font-size:12px;opacity:.85">of Rs. '+fmt(totalExpected)+' total</div></div>';
+  h+='<div style="background:rgba(255,255,255,.13);padding:8px 12px;border-radius:10px;text-align:center"><div style="font-size:18px;font-weight:700">'+overallPct+'%</div><div style="font-size:9px;opacity:.8;text-transform:uppercase;letter-spacing:.5px">Done</div></div>';
+  h+='</div>';
+  h+='<div style="height:5px;background:rgba(255,255,255,.2);border-radius:99px;margin-top:12px;overflow:hidden"><div style="height:100%;width:'+overallPct+'%;background:rgba(255,255,255,.85);border-radius:99px;transition:width .4s"></div></div>';
+  h+='</div>';
 
-  if(pc===members.length){
-    h+='<div class="card done"><div class="big">✅</div><p>Sab ne pay kar diya!</p><div class="sub">'+recNames+' ko transfer karein</div></div>';
-    h+='<div class="card"><div style="font-size:13px;font-weight:700;margin-bottom:8px">🎉 Mubarak bhejein</div>';
-    for(var i=0;i<s.receivers.length;i++){
-      var r=s.receivers[i],nm=mName(r.mid),tp=r.amount*13;
-      h+='<div class="row"><div class="av gd">'+ini(nm)+'</div><div style="flex:1"><div class="rn">'+nm+'</div><div class="ra">Payout: Rs. '+fmt(tp)+'</div></div><button class="bwa" data-act="mubarak" data-mid="'+r.mid+'" data-mi="'+CI+'" data-total="'+tp+'">🎉 Send</button></div>';
+  // --- Quick stats row ---
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">';
+  h+='<div class="card" style="padding:11px 10px;text-align:center;margin:0"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;font-weight:600">Monthly</div><div style="font-size:15px;font-weight:700;color:var(--g);margin-top:3px">'+fmtK(TM)+'</div></div>';
+  h+='<div class="card" style="padding:11px 10px;text-align:center;margin:0"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;font-weight:600">Months Left</div><div style="font-size:15px;font-weight:700;color:var(--t1);margin-top:3px">'+monthsLeft+'</div></div>';
+  h+='<div class="card" style="padding:11px 10px;text-align:center;margin:0"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;font-weight:600">Members</div><div style="font-size:15px;font-weight:700;color:var(--t1);margin-top:3px">'+members.length+'</div></div>';
+  h+='</div>';
+
+  // --- Month navigator ---
+  var tag=isCurrent?'⭐ Current Month':isPast?'✓ Completed':'🔜 Upcoming';
+  var tagColor=isCurrent?'var(--gold)':isPast?'var(--g)':'var(--t3)';
+  h+='<div class="card" style="border-left:3px solid '+(isCurrent?'var(--gold)':isPast?'var(--g)':'var(--line)')+';background:'+(isCurrent?'linear-gradient(to right,#fdf6e8,#fff 70%)':'#fff')+'">';
+  // nav row
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<button class="bi" data-act="prevMonth" style="padding:5px 12px;font-size:16px;'+(mi===0?'opacity:.3;pointer-events:none':'')+'">‹</button>';
+  h+='<div style="text-align:center"><div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:'+tagColor+'">'+tag+'</div><div style="font-size:16px;font-weight:700;margin-top:2px">'+s.month+'</div><div style="font-size:11px;color:var(--t3);margin-top:1px">Month '+(mi+1)+' of '+totalMonths+'</div></div>';
+  h+='<button class="bi" data-act="nextMonth" style="padding:5px 12px;font-size:16px;'+(mi===totalMonths-1?'opacity:.3;pointer-events:none':'')+'">›</button>';
+  h+='</div>';
+  // receivers + payment status
+  h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+  h+='<div style="font-size:12px;color:var(--t2)">🎯 '+recNames+'</div>';
+  h+='<div style="text-align:right"><div style="font-size:14px;font-weight:700;color:'+(pc===members.length?'var(--g)':'var(--o)')+'">'+pc+'/'+members.length+' paid</div>';
+  h+='<div style="width:60px;height:4px;background:#eee;border-radius:99px;margin-top:4px;overflow:hidden;margin-left:auto"><div style="height:100%;width:'+(members.length?Math.round(pc/members.length*100):0)+'%;background:'+(pc===members.length?'var(--g)':'var(--o)')+'"></div></div></div>';
+  h+='</div>';
+  // status line
+  if(payouts[mi]&&payouts[mi].confirmed){
+    h+='<div style="margin-top:8px;font-size:12px;color:var(--g);font-weight:600">💸 Transferred on '+fmtD(payouts[mi].date)+'</div>';
+  } else if(pc===members.length&&!isFuture){
+    h+='<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">';
+    h+='<span style="font-size:12px;color:var(--g);font-weight:600">✅ Sab ne pay kar diya!</span>';
+    h+='<button class="bwa" style="font-size:11px;padding:6px 10px" data-act="confirmpayout" data-mi="'+mi+'">💸 Mark Transferred</button>';
+    h+='</div>';
+    h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f0e8cc;display:flex;gap:6px;flex-wrap:wrap">';
+    for(var i=0;i<s.receivers.length;i++){var r=s.receivers[i],nm=mName(r.mid),tp=r.amount*13;h+='<button class="bwa" style="font-size:11px;padding:6px 10px" data-act="mubarak" data-mid="'+r.mid+'" data-mi="'+mi+'" data-total="'+tp+'">🎉 '+nm+' ko Mubarak</button>';}
+    h+='</div>';
+  } else if(isCurrent&&!isFuture){
+    h+='<div style="margin-top:8px;padding:7px 10px;background:'+(dl.cls==='ok'?'var(--gl)':dl.cls==='warn'?'var(--ol)':'var(--rl)')+';border-radius:8px;font-size:12px;font-weight:600;color:'+(dl.cls==='ok'?'var(--g)':dl.cls==='warn'?'var(--o)':'var(--r)')+'">'+dl.ico+' '+dl.txt+'</div>';
+  }
+  h+='</div>';
+
+  // --- Pending this month ---
+  if(up.length>0&&!isFuture){
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    h+='<div style="font-size:13px;font-weight:700;color:var(--o)">⏳ Pending ('+up.length+')</div>';
+    h+='<button style="background:var(--wa);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit" data-act="remindall" data-mi="'+mi+'">📢 Remind All</button>';
+    h+='</div>';
+    for(var i=0;i<up.length;i++){
+      var m=up[i],grp=isGrp(m),rem=getRem(mi,m.id);
+      var late=(isCurrent&&isLate())?'<span class="badge bg-r" style="font-size:9px">Late</span>':'';
+      if(!grp){
+        var rc=rem.count>0?'<span class="badge bg-b" style="font-size:9px">📱'+rem.count+'x</span>':'';
+        h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(memMonthly(m))+'  '+late+rc+'</div></div><button class="chk" data-act="qpay" data-mi="'+mi+'" data-mid="'+m.id+'">✓</button><button class="bwa" style="padding:6px 9px" data-act="remind" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div>';
+      } else {
+        var pa2=memPdAmt(mi,m),tot2=memMonthly(m);
+        h+='<div class="row" style="flex-wrap:wrap"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+' <span class="badge bg-pu" style="font-size:9px">👥</span></div><div class="ra">'+fmt(pa2)+'/'+fmt(tot2)+'  '+late+'</div></div></div>';
+        for(var j=0;j<m.contributors.length;j++){
+          var c=m.contributors[j];
+          if(!isCPd(mi,m.id,c.id)){
+            var cr=getCRem(mi,m.id,c.id);
+            h+='<div class="c-row"><div style="width:2px;min-height:28px;background:var(--line);flex-shrink:0;border-radius:1px;margin-left:4px"></div><div class="av sm">'+ini(c.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(c.amount)+(cr.count>0?' • 📱'+cr.count+'x':'')+'</div></div><button class="chk sm" data-act="qcpay" data-mi="'+mi+'" data-mid="'+m.id+'" data-cid="'+c.id+'">✓</button><button class="bwa" style="padding:5px 8px;font-size:10px" data-act="cremind" data-mid="'+m.id+'" data-cid="'+c.id+'" data-mi="'+mi+'">📱</button></div>';
+          }
+        }
+      }
     }
     h+='</div>';
-  } else {
-    h+='<div class="card"><div class="pnd-h"><span>⏳ Pending</span><span class="pnd-ct">'+up.length+'</span></div>';
-    for(var i=0;i<up.length;i++){
-      var m=up[i];
-      h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(m.monthly)+'</div></div><button class="chk" data-act="qpay" data-mi="'+CI+'" data-mid="'+m.id+'">✓</button><button class="bwa" style="padding:7px 9px" data-act="remind" data-mid="'+m.id+'" data-mi="'+CI+'">📱</button></div>';
-    }
-    h+='<button class="bwf" data-act="remindall" data-mi="'+CI+'">📢 Sab Ko Remind Karein</button></div>';
   }
+
+  // --- Upcoming (only show when on current or past month) ---
+  if(mi<=CI){
+    var upcomingHtml='';
+    for(var i=CI+1;i<Math.min(CI+3,totalMonths);i++){
+      var sc2=schedule[i],tp2=0;
+      for(var j=0;j<sc2.receivers.length;j++)tp2+=sc2.receivers[j].amount*13;
+      var rn2=sc2.receivers.map(function(r){return mName(r.mid)}).join(", ");
+      upcomingHtml+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;'+(i<Math.min(CI+2,totalMonths-1)?'border-bottom:1px solid #f5f3ed':'')+'"><div style="width:34px;height:34px;border-radius:9px;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">M'+(i+1)+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+sc2.month+'</div><div style="font-size:11px;color:var(--t3)">🎯 '+rn2+'</div></div><div style="font-size:12px;font-weight:700;color:var(--g);flex-shrink:0">'+fmtK(tp2)+'</div></div>';
+    }
+    if(upcomingHtml) h+='<div class="card"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px">📆 Upcoming</div>'+upcomingHtml+'</div>';
+  }
+
+  // --- Intro (compact, always at bottom) ---
+  var allSent=!anyIntroUnsent();
+  h+='<div class="card" style="background:var(--gold-l);border-color:#e8dcc0;padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center">';
+  h+='<div><div style="font-size:12px;font-weight:700;color:var(--gold)">📣 Introduction Message</div><div style="font-size:11px;color:var(--t2);margin-top:2px">'+(allSent?'✅ Sab ko bhej diya':'Sab members ko bhejein')+'</div></div>';
+  h+=(allSent?'<button class="bwa" style="background:#aaa;font-size:11px;padding:6px 10px" data-act="introall">🔄 Resend</button>':'<button class="bwa" style="background:var(--gold);font-size:11px;padding:6px 10px" data-act="introall">Send Sab Ko</button>');
+  h+='</div></div>';
 
   root.innerHTML=h;
 };
 
-R.timeline = function(){
-  var root=document.getElementById("pg-timeline"), CI=ci();
-  var h='<div class="shdr"><div><h3>📅 Timeline</h3><small>Har month ki committee — tap karke edit karein</small></div></div>';
+R.timeline=function(){
+  var root=document.getElementById("pg-timeline"),CI=ci();
+  var h='<div class="shdr"><div><h3>📅 Timeline</h3><small>Tap karke month edit karein</small></div></div>';
   for(var i=0;i<schedule.length;i++){
-    var sc=schedule[i], cur=i===CI, past=i<CI;
-    var cls=cur?"cur":past?"past":"";
+    var sc=schedule[i],cur=i===CI,past=i<CI,cls=cur?"cur":past?"past":"";
     var tag=cur?"⭐ Current":past?"✓ Done":"Month "+(i+1);
     var tp=0;for(var j=0;j<sc.receivers.length;j++)tp+=sc.receivers[j].amount*13;
-    var badges="";for(var j=0;j<sc.receivers.length;j++)badges+='<span class="badge '+(cur?'badge-gd':'badge-g')+'">'+mName(sc.receivers[j].mid)+" · "+fmtK(sc.receivers[j].amount)+'</span>';
-    h+='<div class="card tl-card '+cls+'"><div style="display:flex;justify-content:space-between;gap:8px"><div style="flex:1;min-width:0"><div class="tl-tag">'+tag+'</div><div class="tl-mo">'+sc.month+'</div><div style="margin-top:4px">'+badges+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0"><div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Payout</div><div style="font-weight:700;font-size:14px;color:var(--g)">'+fmt(tp)+'</div><button class="bi" data-act="editmonth" data-idx="'+i+'" style="font-size:11px;padding:5px 10px;margin-top:2px">✎ Edit</button></div></div></div>';
+    var badges="";for(var j=0;j<sc.receivers.length;j++){var rm=mById(sc.receivers[j].mid);badges+='<span class="badge '+(cur?'bg-gd':'bg-g')+'">'+(rm?rm.name:"?")+' · '+fmtK(sc.receivers[j].amount)+(rm&&isGrp(rm)?' 👥':'')+'</span>';}
+    var tf=payouts[i]&&payouts[i].confirmed?'<span class="badge bg-g">💸 Transferred '+fmtD(payouts[i].date)+'</span>':'';
+    var noteText=notes[i]||"";
+    var noteHtml=noteText?'<div class="note-box">📝 '+noteText+'</div>':'<div class="note-empty" data-act="editnote" data-idx="'+i+'">+ Note add karein...</div>';
+    h+='<div class="card tl-card '+cls+'"><div style="display:flex;justify-content:space-between;gap:8px"><div style="flex:1;min-width:0"><div class="tl-tag">'+tag+'</div><div class="tl-mo">'+sc.month+'</div><div style="margin-top:4px">'+badges+'</div><div style="margin-top:3px">'+tf+'</div>'+noteHtml+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0"><div style="text-align:right"><div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase">Payout</div><div style="font-weight:700;font-size:14px;color:var(--g)">'+fmt(tp)+'</div></div><button class="bi" data-act="editmonth" data-idx="'+i+'" style="font-size:11px;padding:5px 10px">✎ Edit</button><button class="bi" data-act="editnote" data-idx="'+i+'" style="font-size:11px;padding:5px 10px">📝 Note</button></div></div></div>';
   }
   root.innerHTML=h;
 };
 
-R.members = function(){
+R.members=function(){
   var root=document.getElementById("pg-members");
   var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+members.length+' members • Pool: Rs. '+fmt(totM())+'</small></div><button class="sbtn" data-act="addmem">+ Add</button></div>';
-  if(!members.length){
-    h+='<div style="text-align:center;padding:40px 20px;color:var(--t3)"><div style="font-size:34px;opacity:.5;margin-bottom:8px">👥</div><p>Koi member nahi. Add karein.</p></div>';
-  } else {
-    for(var i=0;i<members.length;i++){
-      var m=members[i], mons=getMonths(m.id);
-      var mb="";
-      if(mons.length){
-        for(var j=0;j<mons.length;j++)mb+='<span class="badge badge-gd">🎯 '+mons[j].month+' ('+fmtK(mons[j].amount)+')</span>';
-      } else {
-        mb='<span class="badge badge-r">⚠ No month assigned</span>';
-      }
-      h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 '+fmt(m.monthly)+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div></div></div><div style="display:flex;gap:6px;margin-top:9px"><button class="bi" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="intro" data-mid="'+m.id+'">📣 Intro</button>'+(m.phone?'<button class="bi" data-act="chatmem" data-mid="'+m.id+'">💬</button>':'')+'<button class="bi" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
+  if(!members.length){h+='<div style="text-align:center;padding:40px 20px;color:var(--t3)"><div style="font-size:34px;opacity:.5;margin-bottom:8px">👥</div><p>Koi member nahi. Add karein.</p></div>';}
+  else for(var i=0;i<members.length;i++){
+    var m=members[i],mons=getMonths(m.id),grp=isGrp(m);
+    var mb=mons.length?mons.map(function(mn){return'<span class="badge bg-gd">🎯 '+mn.month+' ('+fmtK(mn.amount)+')</span>'}).join(''):'<span class="badge bg-r">⚠ No month assigned</span>';
+    var is=introSent[m.id]?'<span class="badge bg-g">✅ Intro sent</span>':'<span class="badge bg-o">📣 Pending</span>';
+    var grpBadge=grp?'<span class="badge bg-pu">👥 Group ('+m.contributors.length+' contributors)</span>':'';
+    var contribHtml="";
+    if(grp){
+      contribHtml='<div style="margin-top:7px;background:#f9f7f1;border-radius:8px;padding:7px 10px">';
+      for(var j=0;j<m.contributors.length;j++){var c=m.contributors[j];contribHtml+='<div style="font-size:11px;color:var(--t2);padding:2px 0">• '+c.name+' — Rs. '+fmt(c.amount)+(c.phone?' ('+c.phone+')':'')+'</div>';}
+      contribHtml+='</div>';
     }
+    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(memMonthly(m))+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+' '+grpBadge+'</div>'+contribHtml+'</div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="intro" data-mid="'+m.id+'">'+(introSent[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+(m.phone?'<button class="bi" data-act="chatmem" data-mid="'+m.id+'">💬</button>':'')+'<button class="bi" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
   }
   root.innerHTML=h;
 };
 
-R.payments = function(){
-  var mi=selMonth, TM=totM(), pc=pdCt(mi), pa=pdAmt(mi);
-  var pct=members.length?(pc/members.length*100):0;
-  var opts="";
-  for(var i=0;i<schedule.length;i++){
-    opts+='<option value="'+i+'"'+(i===mi?' selected':'')+'>'+schedule[i].month+(i===ci()?" • Current":"")+'</option>';
-  }
+R.payments=function(){
+  var mi=selMonth,TM=totM(),pc=pdCt(mi),pa=pdAmt(mi),pct=members.length?(pc/members.length*100):0;
+  var opts="";for(var i=0;i<schedule.length;i++)opts+='<option value="'+i+'"'+(i===mi?' selected':'')+'>'+schedule[i].month+(i===ci()?" • Current":"")+'</option>';
   var h='<div class="shdr"><div><h3>💰 Payments</h3><small>Month select karke track karein</small></div></div>';
-  h+='<select class="sel" id="pay-sel">'+opts+'</select>';
-  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="sl">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+members.length+' paid</div></div><div style="text-align:right"><div class="sl">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(TM)+'</div></div></div><div class="prog"><div class="pb" style="width:'+pct+'%;background:'+(pc===members.length?'var(--g)':'var(--o)')+'"></div></div></div>';
+  h+='<div style="background:var(--gold-l);border:1px solid #e8dcc0;border-radius:13px;padding:12px 14px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">📅 Month Select Karein</div><select class="sel" id="pay-sel" style="margin:0;border-color:#e8dcc0;font-size:15px;font-weight:700">'+opts+'</select></div>';
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="sl">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+members.length+' paid</div></div><div style="text-align:right"><div class="sl">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(TM)+'</div></div></div><div class="prog"><div class="pb" style="width:'+pct+'%;background:'+(pc===members.length?'var(--g)':'var(--o)')+'"></div></div>'+(payouts[mi]&&payouts[mi].confirmed?'<div style="font-size:11px;color:var(--g);font-weight:600;margin-top:7px">💸 Transferred on '+fmtD(payouts[mi].date)+'</div>':'')+'</div>';
 
   for(var i=0;i<members.length;i++){
-    var m=members[i], inf=payInf(mi,m.id), ip=!!inf;
-    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+(ip?'var(--g)':'var(--line)')+'"><div style="display:flex;align-items:center;gap:10px"><button class="chk'+(ip?' on':'')+'" data-act="togpay" data-mi="'+mi+'" data-mid="'+m.id+'">'+(ip?'✓':'')+'</button><div style="flex:1;min-width:0"><div class="rn" style="color:'+(ip?'var(--g)':'var(--t1)')+'">'+m.name+'</div><div class="ra">Rs. '+fmt(m.monthly)+(ip&&inf.date?' • '+fmtD(inf.date):'')+'</div></div>'+(ip?'':'<button class="bwa" style="padding:7px 9px" data-act="remind" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>')+'</div></div>';
+    var m=members[i],grp=isGrp(m),ip=isMemPd(mi,m);
+    var paidAm=memPdAmt(mi,m),totalAm=memMonthly(m);
+
+    if(!grp){
+      var inf=payments[mi+"-"+m.id];inf=inf&&typeof inf==="object"?inf:null;
+      var rem=getRem(mi,m.id);
+      var lateBadge=(!ip&&isLate())?'<span class="badge bg-r" style="font-size:10px">🔴 Late</span>':'';
+      var remBadge=(!ip&&rem.count>0)?'<span class="badge bg-b" style="font-size:10px">📱 '+rem.count+'x • '+dAgo(rem.lastDate)+'</span>':'';
+      h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+(ip?'var(--g)':'var(--line)')+'"><div style="display:flex;align-items:center;gap:10px"><button class="chk'+(ip?' on':'')+'" data-act="togpay" data-mi="'+mi+'" data-mid="'+m.id+'">'+(ip?'✓':'')+'</button><div style="flex:1;min-width:0"><div class="rn" style="color:'+(ip?'var(--g)':'var(--t1)')+'">'+m.name+'</div><div class="ra">Rs. '+fmt(totalAm)+(ip&&inf&&inf.date?' • '+fmtD(inf.date):'')+'</div>'+(lateBadge||remBadge?'<div style="margin-top:2px">'+lateBadge+remBadge+'</div>':'')+'</div>'+(ip?'':'<button class="bwa" style="padding:7px 9px" data-act="remind" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>')+'</div></div>';
+    }else{
+      // Group member
+      var gpct=totalAm?Math.round(paidAm/totalAm*100):0;
+      h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+(ip?'var(--g)':paidAm>0?'var(--o)':'var(--line)')+'"><div style="font-size:13px;font-weight:700;color:'+(ip?'var(--g)':'var(--t1)')+'">'+m.name+' <span class="badge bg-pu">👥</span></div><div style="font-size:11px;color:var(--t3);margin:2px 0">Rs. '+fmt(paidAm)+' / '+fmt(totalAm)+(ip?' • ✅ Complete':'')+'</div><div class="prog" style="margin-bottom:8px"><div class="pb" style="width:'+gpct+'%;background:'+(ip?'var(--g)':'var(--o)')+'"></div></div>';
+      // Contributors
+      for(var j=0;j<m.contributors.length;j++){
+        var c=m.contributors[j],cp=isCPd(mi,m.id,c.id);
+        var ci2=getCPay(mi,m.id,c.id);
+        var cr=getCRem(mi,m.id,c.id);
+        var cLate=(!cp&&isLate())?'<span class="badge bg-r" style="font-size:9px">🔴</span>':'';
+        var cRem=(!cp&&cr.count>0)?'<span class="badge bg-b" style="font-size:9px">📱'+cr.count+'x</span>':'';
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0 6px 4px;border-top:1px solid #f5f3ed"><div style="width:2px;min-height:28px;background:var(--line);flex-shrink:0;border-radius:1px"></div><div class="av sm">'+ini(c.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:'+(cp?'var(--g)':'var(--t1)')+'">'+c.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(c.amount)+(cp&&ci2&&ci2.date?' • '+fmtD(ci2.date):'')+'</div><div style="margin-top:1px">'+cLate+cRem+'</div></div><button class="chk sm'+(cp?' on':'')+'" data-act="togcpay" data-mi="'+mi+'" data-mid="'+m.id+'" data-cid="'+c.id+'">'+(cp?'✓':'')+'</button>'+(cp?'':'<button class="bwa" style="padding:5px 8px;font-size:10px" data-act="cremind" data-mid="'+m.id+'" data-cid="'+c.id+'" data-mi="'+mi+'">📱</button>')+'</div>';
+      }
+      h+='</div>';
+    }
   }
-  var root=document.getElementById("pg-payments");
-  root.innerHTML=h;
+  var root=document.getElementById("pg-payments");root.innerHTML=h;
   document.getElementById("pay-sel").addEventListener("change",function(){selMonth=parseInt(this.value);R.payments()});
 };
 
-// ===== EVENT DELEGATION =====
+// ===== EVENTS =====
 document.addEventListener("click",function(e){
   var btn=e.target.closest("[data-act]");if(!btn)return;
-  var act=btn.dataset.act, mid=btn.dataset.mid;
-  var mi=btn.dataset.mi?parseInt(btn.dataset.mi):0;
+  var act=btn.dataset.act,mid=btn.dataset.mid,cid=btn.dataset.cid,mi=btn.dataset.mi?parseInt(btn.dataset.mi):0;
 
   if(act==="qpay"){payments[mi+"-"+mid]={paid:true,date:tdy()};sv();R.home();toast("✅ Paid")}
+  else if(act==="qcpay"){payments[mi+"-"+mid+"-"+cid]={paid:true,date:tdy()};sv();R.home();toast("✅ Paid")}
+  else if(act==="togpay"){var k=mi+"-"+mid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};sv();R.payments()}
+  else if(act==="togcpay"){var k=mi+"-"+mid+"-"+cid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};sv();R.payments()}
   else if(act==="remind"){
     var m=mById(mid);if(!m)return;
-    if(!m.phone){toast("⚠️ Pehle phone add karein (Members tab)");return}
-    waOpen(m.phone,remMsg(m.name,schedule[mi].month,m.monthly));
+    if(!m.phone){toast("⚠️ Pehle phone add karein");return}
+    var rk=mi+"-"+mid;if(!reminders[rk])reminders[rk]={count:0,lastDate:""};
+    reminders[rk].count++;reminders[rk].lastDate=tdy();sv();
+    waOpen(m.phone,remMsg(m.name,schedule[mi].month,memMonthly(m)));
+    toast("📱 Reminder sent ("+reminders[rk].count+"x)");reRender();
+  }
+  else if(act==="cremind"){
+    var m=mById(mid);if(!m)return;
+    var c=null;for(var i=0;i<m.contributors.length;i++)if(m.contributors[i].id===cid){c=m.contributors[i];break}
+    if(!c)return;
+    if(!c.phone){toast("⚠️ Contributor ka phone nahi hai");return}
+    var rk=mi+"-"+mid+"-"+cid;if(!reminders[rk])reminders[rk]={count:0,lastDate:""};
+    reminders[rk].count++;reminders[rk].lastDate=tdy();sv();
+    waOpen(c.phone,remMsg(c.name,schedule[mi].month,c.amount));
+    toast("📱 Reminder sent to "+c.name+" ("+reminders[rk].count+"x)");reRender();
   }
   else if(act==="remindall"){
-    var u=unp(mi).filter(function(m){return m.phone});
-    if(!u.length){toast("⚠️ Kisi pending ka phone nahi!");return}
-    for(var i=0;i<u.length;i++)(function(m,d){setTimeout(function(){waOpen(m.phone,remMsg(m.name,schedule[mi].month,m.monthly))},d)})(u[i],i*1000);
-    toast("📢 "+u.length+" reminders...");
+    var u=unp(mi);
+    var sent=0;
+    for(var i=0;i<u.length;i++){
+      var m=u[i];
+      if(!isGrp(m)){
+        if(!m.phone)continue;
+        (function(m,d){setTimeout(function(){
+          var rk=mi+"-"+m.id;if(!reminders[rk])reminders[rk]={count:0,lastDate:""};
+          reminders[rk].count++;reminders[rk].lastDate=tdy();
+          waOpen(m.phone,remMsg(m.name,schedule[mi].month,memMonthly(m)));
+        },d)})(m,sent*1200);sent++;
+      }else{
+        for(var j=0;j<m.contributors.length;j++){
+          var c=m.contributors[j];
+          if(isCPd(mi,m.id,c.id)||!c.phone)continue;
+          (function(m,c,d){setTimeout(function(){
+            var rk=mi+"-"+m.id+"-"+c.id;if(!reminders[rk])reminders[rk]={count:0,lastDate:""};
+            reminders[rk].count++;reminders[rk].lastDate=tdy();
+            waOpen(c.phone,remMsg(c.name,schedule[mi].month,c.amount));
+          },d)})(m,c,sent*1200);sent++;
+        }
+      }
+    }
+    if(!sent){toast("⚠️ Kisi ka phone nahi!");return}
+    setTimeout(function(){sv();reRender()},sent*1200+200);
+    toast("📢 "+sent+" reminders...");
   }
-  else if(act==="mubarak"){
-    var m=mById(mid),total=parseInt(btn.dataset.total);
-    if(!m||!m.phone){toast("⚠️ Phone add karein!");return}
-    waOpen(m.phone,mubMsg(m.name,schedule[mi].month,total));
-  }
-  else if(act==="togpay"){var k=mi+"-"+mid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};sv();R.payments()}
-  else if(act==="introall"){
-    var wm=members.filter(function(m){return m.phone});
-    if(!wm.length){toast("⚠️ Kisi ka phone nahi!");return}
-    for(var i=0;i<wm.length;i++)(function(m,d){setTimeout(function(){waOpen(m.phone,introMsg(m.id))},d)})(wm[i],i*1200);
-    toast("📣 "+wm.length+" intro messages...");
-  }
+  else if(act==="mubarak"){var m=mById(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}waOpen(m.phone,mubMsg(m.name,schedule[mi].month,parseInt(btn.dataset.total)))}
   else if(act==="intro"){
     var m=mById(mid);if(!m)return;
-    if(!m.phone){toast("⚠️ Phone add karein!");return}
-    waOpen(m.phone,introMsg(m.id));
+    var ph=m.phone;
+    if(!ph){
+      // If group, try first contributor with phone
+      if(isGrp(m)){for(var i=0;i<m.contributors.length;i++)if(m.contributors[i].phone){ph=m.contributors[i].phone;break}}
+      if(!ph){toast("⚠️ Phone add karein!");return}
+    }
+    introSent[mid]=true;sv();waOpen(ph,introMsg(mid));toast("📣 Intro sent to "+m.name);reRender();
   }
+  else if(act==="introall"){
+    var wm=members.filter(function(m){return m.phone||(isGrp(m)&&m.contributors.some(function(c){return c.phone}))});
+    if(!wm.length){toast("⚠️ Kisi ka phone nahi!");return}
+    for(var i=0;i<wm.length;i++){
+      (function(m,d){setTimeout(function(){
+        var ph=m.phone;
+        if(!ph&&isGrp(m))for(var j=0;j<m.contributors.length;j++)if(m.contributors[j].phone){ph=m.contributors[j].phone;break}
+        if(!ph)return;
+        introSent[m.id]=true;waOpen(ph,introMsg(m.id));
+      },d)})(wm[i],i*1300);
+    }
+    setTimeout(function(){sv();reRender()},wm.length*1300+200);
+    toast("📣 "+wm.length+" intro messages...");
+  }
+  else if(act==="confirmpayout"){payouts[mi]={confirmed:true,date:tdy()};sv();R.home();toast("💸 Transfer confirmed!")}
   else if(act==="addmem"){openMemForm(null)}
   else if(act==="editmem"){openMemForm(mid)}
   else if(act==="chatmem"){var m=mById(mid);if(m&&m.phone)waOpen(m.phone,"Assalam o Alaikum!")}
   else if(act==="delmem"){confirmDel(mid)}
-  else if(act==="editmonth"){openMonthEdit(parseInt(btn.dataset.idx))}
-  else if(act==="addreceiver"){addRecRow()}
-  else if(act==="remrec"){btn.closest(".rec-r").remove()}
-  else if(act==="savemonth"){saveMonthEdit(parseInt(btn.dataset.idx))}
-  else if(act==="savemem"){saveMemForm(btn.dataset.mid||"")}
   else if(act==="dodelmem"){
     var id=btn.dataset.mid;
     members=members.filter(function(m){return m.id!==id});
     for(var i=0;i<schedule.length;i++)schedule[i].receivers=schedule[i].receivers.filter(function(r){return r.mid!==id});
-    var ks=Object.keys(payments);for(var i=0;i<ks.length;i++)if(ks[i].endsWith("-"+id))delete payments[ks[i]];
-    sv();closeM();R.members();toast("🗑 Deleted");
+    var ks=Object.keys(payments);for(var i=0;i<ks.length;i++)if(ks[i].indexOf("-"+id)!==-1)delete payments[ks[i]];
+    delete introSent[id];sv();closeM();R.members();toast("🗑 Deleted");
   }
+  else if(act==="savemem"){saveMemForm(btn.dataset.mid||"")}
+  else if(act==="addcontrib"){addContribRow()}
+  else if(act==="remcontrib"){btn.closest(".cf-row").remove();updateContribTotal()}
+  else if(act==="editmonth"){openMonthEdit(parseInt(btn.dataset.idx))}
+  else if(act==="addreceiver"){addRecRow()}
+  else if(act==="remrec"){btn.closest(".rec-r").remove()}
+  else if(act==="savemonth"){saveMonthEdit(parseInt(btn.dataset.idx))}
+  else if(act==="editnote"){openNoteEdit(parseInt(btn.dataset.idx))}
+  else if(act==="savenote"){saveNote(parseInt(btn.dataset.idx))}
   else if(act==="settings"){openSettings()}
-  else if(act==="export"){doExport()}
-  else if(act==="import"){document.getElementById("file-inp").click()}
-  else if(act==="resetpay"){
-    openM('<h3>Reset Payments?</h3><p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px">Saare payment marks delete ho jayenge.</p><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doresetpay">Reset</button></div>');
+  else if(act==="changestartmonth"){openStartMonth()}
+  else if(act==="saveStartMonth"){saveStartMonth()}
+  else if(act==="changeDeadline"){openDeadlineEdit()}
+  else if(act==="saveDeadline"){saveDeadline()}
+  else if(act==="editTemplates"){openTemplates()}
+  else if(act==="saveTemplates"){saveTemplates()}
+  else if(act==="resetTemplates"){doResetTemplates()}
+  else if(act==="exportData"){doExport()}
+  else if(act==="importData"){document.getElementById("file-inp").click()}
+  else if(act==="toggleDanger"){var dz=document.getElementById("danger-zone");if(dz)dz.style.display=dz.style.display==="none"?"block":"none"}
+  else if(act==="doRestore"){
+    try{var d=JSON.parse(btn.dataset.json);applyData(d);sv();closeM();go("home");toast("✅ Restored")}catch(ex){toast("⚠️ Error")}
   }
-  else if(act==="doresetpay"){payments={};sv();closeM();toast("↺ Payments reset")}
-  else if(act==="resetall"){
-    openM('<h3>⚠ Reset Everything?</h3><p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px"><strong>Sab delete ho jayega.</strong><br><br><strong style="color:var(--r)">Pehle backup le lein!</strong></p><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doresetall">Reset All</button></div>');
-  }
-  else if(act==="doresetall"){
-    members=JSON.parse(JSON.stringify(DEF_MEM));schedule=JSON.parse(JSON.stringify(DEF_SCH));payments={};
-    sv();closeM();go("home");toast("✅ Reset done");
-  }
+  else if(act==="manualsync"){setSS("syncing");fbLoad().then(function(){reRender();setSS("ok");toast("✅ Synced")}).catch(function(){toast("⚠️ Fail")})}
+  else if(act==="resetpay"){openM('<div class="mdl-head"><h3>Reset Payments?</h3></div><div class="mdl-body"><p style="color:var(--t2);font-size:14px;line-height:1.6">Sirf payment marks delete honge. Members, schedule aur notes safe rahenge.</p></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doresetpay">Reset</button></div>')}
+  else if(act==="doresetpay"){payments={};payouts={};sv();closeM();toast("↺ Payments reset")}
+  else if(act==="resetall"){openM('<div class="mdl-head"><h3>⚠️ Reset Everything?</h3></div><div class="mdl-body"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>Sab kuch delete ho jayega</strong> — members, schedule, payments, notes.<br><br><span style="color:var(--r);font-weight:600">Pehle backup zaroor le lein!</span></p></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doresetall">Reset All</button></div>')}
+  else if(act==="doresetall"){members=JSON.parse(JSON.stringify(DEF_MEM));schedule=JSON.parse(JSON.stringify(DEF_SCH));payments={};reminders={};introSent={};payouts={};notes={};sv();closeM();go("home");toast("✅ Reset done")}
+  else if(act==="prevMonth"){if(selMonth>0){selMonth--;R.home()}}
+  else if(act==="nextMonth"){if(selMonth<schedule.length-1){selMonth++;R.home()}}
   else if(act==="closeM"){closeM()}
-  else if(act==="dorestore"){
-    try{var d=JSON.parse(btn.dataset.json);members=d.members;schedule=d.schedule;payments=d.payments||{};sv();closeM();go("home");toast("✅ Restored")}catch(ex){toast("⚠️ Error")}
-  }
 });
 
-document.getElementById("mbg").addEventListener("click",function(e){if(e.target===this)closeM()});
-
-// Auto-fill amount on member select
 document.addEventListener("change",function(e){
   if(e.target.tagName==="SELECT"&&e.target.dataset.f==="mid"){
     var m=mById(e.target.value);
-    if(m){var ai=e.target.closest(".rec-r").querySelector('[data-f="amount"]');if(ai&&!ai.value)ai.value=m.monthly}
+    if(m){var ai=e.target.closest(".rec-r").querySelector('[data-f="amount"]');if(ai&&!ai.value)ai.value=memMonthly(m)}
   }
+  if(e.target.id==="grp-toggle"){toggleGroupMode()}
+  if(e.target.className&&e.target.className.indexOf("contrib-amt")!==-1)updateContribTotal();
 });
 
 // ===== MEMBER FORM =====
+function toggleGroupMode(){
+  var on=document.getElementById("grp-toggle").checked;
+  document.getElementById("single-section").style.display=on?"none":"block";
+  document.getElementById("group-section").style.display=on?"block":"none";
+}
+function addContribRow(name,amt,phone){
+  var list=document.getElementById("contrib-list");if(!list)return;
+  var d=document.createElement("div");d.className="cf-row";
+  d.innerHTML='<div class="cf-head"><span class="cf-ttl">Contributor</span><button class="bi" style="color:var(--r);padding:4px 8px;font-size:11px" data-act="remcontrib">✕ Remove</button></div><div class="fld" style="margin-bottom:8px"><label class="lbl">Name</label><input class="inp contrib-name" type="text" placeholder="Naam" value="'+(name||"")+'"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="fld" style="margin-bottom:0"><label class="lbl">Amount (Rs.)</label><input class="inp contrib-amt" type="number" inputmode="numeric" placeholder="30000" value="'+(amt||"")+'"></div><div class="fld" style="margin-bottom:0"><label class="lbl">Phone</label><input class="inp contrib-phone" type="tel" inputmode="tel" placeholder="923..." value="'+(phone||"")+'"></div></div>';
+  list.appendChild(d);updateContribTotal();
+}
+function updateContribTotal(){
+  var amts=document.querySelectorAll(".contrib-amt"),total=0;
+  for(var i=0;i<amts.length;i++)total+=parseInt(amts[i].value)||0;
+  var el=document.getElementById("contrib-total");
+  if(el)el.textContent="Total: Rs. "+Number(total).toLocaleString("en-PK");
+}
 function openMemForm(mid){
-  var m=mid?mById(mid):{name:"",monthly:50000,phone:""};if(!m)return;
-  var title=mid?"Edit Member":"New Member";
+  var m=mid?mById(mid):{name:"",monthly:50000,phone:"",contributors:[]};if(!m)return;
+  var grp=isGrp(m);
   var mons=mid?getMonths(mid):[];
   var monInfo="";
   if(mid&&mons.length){
-    monInfo='<div class="fld"><label class="lbl">Assigned Months</label>';
-    for(var i=0;i<mons.length;i++)monInfo+='<span class="badge badge-gd" style="font-size:12px;padding:5px 10px">🎯 '+mons[i].month+' ('+fmtK(mons[i].amount)+')</span> ';
-    monInfo+='<div style="font-size:11px;color:var(--t3);margin-top:5px">Timeline se month change karein</div></div>';
+    monInfo='<div class="fld"><div class="lbl">Assigned Months</div>';
+    for(var i=0;i<mons.length;i++)monInfo+='<span class="badge bg-gd" style="font-size:12px;padding:5px 10px">🎯 '+mons[i].month+' ('+fmtK(mons[i].amount)+')</span> ';
+    monInfo+='<div style="font-size:11px;color:var(--t3);margin-top:6px">Timeline tab se month change karein</div></div>';
   }
   openM(
-    '<h3>'+title+'</h3>'+
-    '<div class="fld"><label class="lbl">Name</label><input id="f-name" class="inp" type="text" placeholder="Naam" value="'+(m.name||"")+'"></div>'+
-    '<div class="fld"><label class="lbl">Monthly Amount (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" placeholder="50000" value="'+m.monthly+'"></div>'+
-    '<div class="fld"><label class="lbl">Phone (country code ke saath)</label><input id="f-phone" class="inp" type="tel" inputmode="tel" placeholder="923001234567" value="'+(m.phone||"")+'"></div>'+
+    '<div class="mdl-head"><h3>'+(mid?"Edit Member":"New Member")+'</h3></div>'+
+    '<div class="mdl-body">'+
+    '<div class="toggle-row"><label class="toggle"><input type="checkbox" id="grp-toggle"'+(grp?' checked':'')+'><span class="toggle-slider"></span></label><span class="toggle-lbl">👥 Group (multiple contributors)</span></div>'+
+    '<div class="fld"><label class="lbl">Group / Member Name</label><input id="f-name" class="inp" type="text" placeholder="Name ya group label" value="'+(m.name||"")+'"></div>'+
+    '<div id="single-section" style="display:'+(grp?"none":"block")+'">'+
+      '<div class="fld"><label class="lbl">Monthly Amount (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" value="'+m.monthly+'"></div>'+
+      '<div class="fld"><label class="lbl">Phone (country code)</label><input id="f-phone" class="inp" type="tel" inputmode="tel" placeholder="923001234567" value="'+(m.phone||"")+'"></div>'+
+    '</div>'+
+    '<div id="group-section" style="display:'+(grp?"block":"none")+'">'+
+      '<div style="font-size:11px;color:var(--t3);margin-bottom:10px">Har contributor ki alag amount aur phone add karein</div>'+
+      '<div id="contrib-list"></div>'+
+      '<button class="bs" style="width:100%;margin-bottom:10px;font-size:13px" data-act="addcontrib">+ Contributor Add Karein</button>'+
+      '<div id="contrib-total" style="font-size:13px;font-weight:700;color:var(--g);text-align:center;margin-bottom:6px">Total: Rs. 0</div>'+
+    '</div>'+
     monInfo+
+    '</div>'+
     '<div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="savemem" data-mid="'+(mid||"")+'">Save</button></div>'
   );
-  setTimeout(function(){document.getElementById("f-name").focus()},150);
+  // Fill contributors if editing group
+  if(grp&&m.contributors){for(var i=0;i<m.contributors.length;i++){var c=m.contributors[i];addContribRow(c.name,c.amount,c.phone)}}
+  setTimeout(function(){var n=document.getElementById("f-name");if(n)n.focus()},150);
 }
-
 function saveMemForm(mid){
   var name=document.getElementById("f-name").value.trim();
-  var amt=parseInt(document.getElementById("f-amt").value)||0;
-  var ph=document.getElementById("f-phone").value.trim();
   if(!name){toast("⚠️ Name zaroori hai");return}
-  if(amt<=0){toast("⚠️ Amount zaroori hai");return}
-  if(mid){
-    for(var i=0;i<members.length;i++){
-      if(members[i].id===mid){members[i].name=name;members[i].monthly=amt;members[i].phone=ph;break}
+  var grp=document.getElementById("grp-toggle").checked;
+  var contributors=[];
+  if(grp){
+    var names=document.querySelectorAll(".contrib-name"),amts=document.querySelectorAll(".contrib-amt"),phones=document.querySelectorAll(".contrib-phone");
+    for(var i=0;i<names.length;i++){
+      var cn=names[i].value.trim(),ca=parseInt(amts[i].value)||0,cp=phones[i].value.trim();
+      if(!cn||!ca){toast("⚠️ Har contributor ka naam aur amount zaroori hai");return}
+      contributors.push({id:gid(),name:cn,amount:ca,phone:cp});
     }
-    toast("✅ Updated");
-  } else {
-    members.push({id:gid(),name:name,monthly:amt,phone:ph});
-    toast("✅ Added");
+    if(!contributors.length){toast("⚠️ Kam se kam ek contributor add karein");return}
   }
+  var monthly=grp?contributors.reduce(function(s,c){return s+c.amount},0):(parseInt(document.getElementById("f-amt").value)||0);
+  if(!grp&&monthly<=0){toast("⚠️ Amount zaroori hai");return}
+  var phone=grp?"":(document.getElementById("f-phone").value.trim());
+  if(mid){
+    for(var i=0;i<members.length;i++){if(members[i].id===mid){members[i].name=name;members[i].monthly=monthly;members[i].phone=phone;members[i].contributors=contributors;break}}
+    toast("✅ Updated");
+  }else{members.push({id:gid(),name:name,monthly:monthly,phone:phone,contributors:contributors});toast("✅ Added")}
   sv();closeM();R.members();
 }
+function confirmDel(mid){var m=mById(mid);if(!m)return;openM('<div class="mdl-head"><h3>Delete Member?</h3></div><div class="mdl-body"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+m.name+'</strong> ko delete karein? Schedule se bhi hat jayega.</p></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="dodelmem" data-mid="'+mid+'">Delete</button></div>')}
 
-function confirmDel(mid){
-  var m=mById(mid);if(!m)return;
-  openM('<h3>Delete?</h3><p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px"><strong>'+m.name+'</strong> ko delete karein? Schedule se bhi hat jayega.</p><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="dodelmem" data-mid="'+mid+'">Delete</button></div>');
-}
-
-// ===== MONTH EDIT (from timeline) =====
+// ===== MONTH EDIT =====
 function openMonthEdit(idx){
-  var s=schedule[idx];
-  var rh="";
-  for(var j=0;j<s.receivers.length;j++){
-    var r=s.receivers[j];
-    rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1">'+mOpts(r.mid)+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="'+r.amount+'" data-f="amount" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remrec">✕</button></div>';
-  }
-  openM(
-    '<h3>'+s.month+'</h3>'+
-    '<p style="color:var(--t2);font-size:12px;margin-bottom:9px">Kis ki committee hai is mahine?</p>'+
-    '<div id="rec-list">'+rh+'</div>'+
-    '<button class="bs" style="width:100%;margin-top:7px" data-act="addreceiver">+ Add Receiver</button>'+
-    '<div class="mdl-btns" style="margin-top:12px"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="savemonth" data-idx="'+idx+'">Save</button></div>'
-  );
+  var s=schedule[idx],rh="";
+  for(var j=0;j<s.receivers.length;j++){var r=s.receivers[j];rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts(r.mid)+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="'+r.amount+'" data-f="amount" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remrec">✕</button></div>';}
+  openM('<div class="mdl-head"><h3>'+s.month+'</h3><div class="mdl-desc">Kis ki committee hai is mahine?</div></div><div class="mdl-body"><div id="rec-list">'+rh+'</div><button class="bs" style="width:100%;margin-top:4px;font-size:13px" data-act="addreceiver">+ Add Receiver</button></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="savemonth" data-idx="'+idx+'">Save</button></div>');
 }
-
-function addRecRow(){
-  var list=document.getElementById("rec-list");if(!list)return;
-  var d=document.createElement("div");d.className="rec-r";
-  d.innerHTML='<select class="sel" data-f="mid" style="flex:1">'+mOpts("")+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="" data-f="amount" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remrec">✕</button>';
-  list.appendChild(d);
-}
-
+function addRecRow(){var l=document.getElementById("rec-list");if(!l)return;var d=document.createElement("div");d.className="rec-r";d.innerHTML='<select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts("")+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="" data-f="amount" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remrec">✕</button>';l.appendChild(d)}
 function saveMonthEdit(idx){
-  var rows=document.querySelectorAll("#rec-list .rec-r"), recs=[];
-  for(var i=0;i<rows.length;i++){
-    var mid=rows[i].querySelector('[data-f="mid"]').value;
-    var a=parseInt(rows[i].querySelector('[data-f="amount"]').value)||0;
-    if(mid&&a>0)recs.push({mid:mid,amount:a});
-  }
+  var rows=document.querySelectorAll("#rec-list .rec-r"),recs=[];
+  for(var i=0;i<rows.length;i++){var mid=rows[i].querySelector('[data-f="mid"]').value,a=parseInt(rows[i].querySelector('[data-f="amount"]').value)||0;if(mid&&a>0)recs.push({mid:mid,amount:a})}
   if(!recs.length){toast("⚠️ Kam se kam ek receiver select karein");return}
-  schedule[idx].receivers=recs;
-  sv();closeM();R.timeline();R.home();toast("✅ Updated");
+  schedule[idx].receivers=recs;sv();closeM();R.timeline();toast("✅ Updated");
 }
+
+// ===== NOTES =====
+function openNoteEdit(idx){
+  var s=schedule[idx],cur=notes[idx]||"";
+  openM('<div class="mdl-head"><h3>📝 Note</h3><div class="mdl-desc">'+s.month+'</div></div><div class="mdl-body"><div class="fld"><textarea id="note-ta" class="ta" placeholder="Note likhein... (e.g. Naveed ne half diya, baaki agle hafte)">'+cur+'</textarea></div></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="savenote" data-idx="'+idx+'">Save</button></div>');
+  setTimeout(function(){var t=document.getElementById("note-ta");if(t)t.focus()},150);
+}
+function saveNote(idx){var t=document.getElementById("note-ta");if(!t)return;var val=t.value.trim();if(val)notes[idx]=val;else delete notes[idx];sv();closeM();R.timeline();toast("📝 Note saved")}
 
 // ===== SETTINGS =====
 function openSettings(){
-  var at=0;
-  for(var i=0;i<schedule.length;i++)for(var j=0;j<members.length;j++)if(isPd(i,members[j].id))at+=members[j].monthly;
-  var exp=totM()*schedule.length, pct=exp?Math.round(at/exp*100):0;
-
+  var at=0;for(var i=0;i<schedule.length;i++)for(var j=0;j<members.length;j++)at+=memPdAmt(i,members[j]);
+  var exp=totM()*schedule.length,pct=exp?Math.round(at/exp*100):0;
+  var tRem=0,ks=Object.keys(reminders);for(var i=0;i<ks.length;i++)if(reminders[ks[i]])tRem+=reminders[ks[i]].count||0;
+  var iCt=Object.keys(introSent).filter(function(k){return introSent[k]}).length;
+  var sLabel=MONTHS_FULL[appSettings.startMonth]+" "+appSettings.startYear;
+  var endIdx=schedule.length-1;
+  var endY=appSettings.startYear+Math.floor((appSettings.startMonth+endIdx)/12);
+  var endM=(appSettings.startMonth+endIdx)%12;
+  var eLabel=MONTHS_FULL[endM]+" "+endY;
   openM(
-    '<h3>⚙ Settings</h3>'+
-    '<div style="padding:12px;background:linear-gradient(135deg,var(--gl),#fff);border-radius:10px;margin-bottom:12px"><div class="sl">Total Collected (All-Time)</div><div style="font-size:22px;font-weight:800;color:var(--g);margin-top:3px">Rs. '+fmt(at)+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">of Rs. '+fmt(exp)+' ('+pct+'%)</div></div>'+
-    '<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">'+
-      '<div class="sr" data-act="export"><div class="sr-i">⬇</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Backup</div><div style="font-size:11px;color:var(--t3)">JSON download</div></div><div style="color:var(--t3)">›</div></div>'+
-      '<div class="sr" data-act="import"><div class="sr-i">⬆</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Restore</div><div style="font-size:11px;color:var(--t3)">Backup se wapas</div></div><div style="color:var(--t3)">›</div></div>'+
+    '<div class="mdl-head"><h3>⚙ Settings</h3></div>'+
+    '<div class="mdl-body">'+
+    '<div style="padding:14px;background:linear-gradient(135deg,var(--gl),#fff);border-radius:12px;margin-bottom:16px">'+
+      '<div class="sl">Total Collected</div>'+
+      '<div style="font-size:22px;font-weight:800;color:var(--g);margin-top:3px;letter-spacing:-.5px">Rs. '+fmt(at)+'</div>'+
+      '<div style="font-size:12px;color:var(--t2);margin-top:2px">of Rs. '+fmt(exp)+' expected ('+pct+'%)</div>'+
+      '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><span class="badge bg-b">📱 '+tRem+' reminders</span><span class="badge bg-g">📣 '+iCt+'/'+members.length+' intro</span></div>'+
     '</div>'+
-    '<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">'+
-      '<div class="sr dng" data-act="resetpay"><div class="sr-i">↺</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Reset Payments</div><div style="font-size:11px;color:var(--t3)">Sirf payment marks clear</div></div><div style="color:var(--t3)">›</div></div>'+
-      '<div class="sr dng" data-act="resetall"><div class="sr-i">⚠</div><div style="flex:1"><div style="font-size:13px;font-weight:600">Reset Everything</div><div style="font-size:11px;color:var(--t3)">Sab delete</div></div><div style="color:var(--t3)">›</div></div>'+
+    '<div class="set-sec">💾 Data</div>'+
     '</div>'+
-    '<button class="bs" style="width:100%" data-act="closeM">Close</button>'
+    '<div style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:0">'+
+      '<div class="sr" data-act="exportData"><div class="sr-i">📤</div><div style="flex:1"><div class="sr-ttl">Backup (Export)</div><div class="sr-desc">Saara data JSON file mein save karein</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+      '<div class="sr" data-act="importData"><div class="sr-i">📥</div><div style="flex:1"><div class="sr-ttl">Restore (Import)</div><div class="sr-desc">Backup file se data wapas laayein</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+      '<div class="sr" data-act="manualsync"><div class="sr-i">🔄</div><div style="flex:1"><div class="sr-ttl">Manual Sync</div><div class="sr-desc">Firebase se latest data lo</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+    '</div>'+
+    '<div class="mdl-body" style="padding-top:12px;padding-bottom:0">'+
+    '<div class="set-sec">📋 Committee</div>'+
+    '</div>'+
+    '<div style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:0">'+
+      '<div class="sr" data-act="changestartmonth"><div class="sr-i">📅</div><div style="flex:1"><div class="sr-ttl">Start Month</div><div class="sr-desc">'+sLabel+' → '+eLabel+'</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+      '<div class="sr" data-act="changeDeadline"><div class="sr-i">⏰</div><div style="flex:1"><div class="sr-ttl">Deadline Day</div><div class="sr-desc">Har mahine '+dlDay()+' tareekh tak</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+      '<div class="sr" data-act="editTemplates"><div class="sr-i">📝</div><div style="flex:1"><div class="sr-ttl">Message Templates</div><div class="sr-desc">Reminder aur mubarak messages edit karein</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+    '</div>'+
+    '<div class="mdl-body" style="padding-top:14px;padding-bottom:0">'+
+    '<div style="font-size:10px;font-weight:700;color:var(--r);text-transform:uppercase;letter-spacing:.9px;cursor:pointer;padding:2px" data-act="toggleDanger">⚠️ Danger Zone ▾</div>'+
+    '<div id="danger-zone" style="display:none;margin-top:10px">'+
+      '<div style="background:#fff;border:1px solid #f5b8b3;border-radius:12px;overflow:hidden">'+
+        '<div class="sr dng" data-act="resetpay"><div class="sr-i">↺</div><div style="flex:1"><div class="sr-ttl">Reset Payments Only</div><div class="sr-desc">Members aur schedule safe rahega</div></div></div>'+
+        '<div class="sr dng" data-act="resetall"><div class="sr-i">🗑</div><div style="flex:1"><div class="sr-ttl">Reset Everything</div><div class="sr-desc">Sab delete — pehle backup lein!</div></div></div>'+
+      '</div>'+
+    '</div>'+
+    '</div>'+
+    '<div class="mdl-btns" style="margin-top:16px"><button class="bs" style="width:100%" data-act="closeM">Close</button></div>'
   );
 }
 
-// ===== BACKUP / RESTORE =====
+function openStartMonth(){
+  var yOpts="";for(var y=2024;y<=2030;y++)yOpts+='<option value="'+y+'"'+(y===appSettings.startYear?' selected':'')+'>'+y+'</option>';
+  var mOpts2="";for(var m=0;m<12;m++)mOpts2+='<option value="'+m+'"'+(m===appSettings.startMonth?' selected':'')+'>'+MONTHS_FULL[m]+'</option>';
+  openM('<div class="mdl-head"><h3>📅 Start Month</h3><div class="mdl-desc">Committee kis month se shuru hogi?</div></div><div class="mdl-body"><div class="fld"><label class="lbl">Year</label><select id="sm-year" class="sel" style="margin:0">'+yOpts+'</select></div><div class="fld"><label class="lbl">Month</label><select id="sm-month" class="sel" style="margin:0">'+mOpts2+'</select></div><div class="mdl-warn">⚠️ Members, payments aur assignments safe rahenge. Sirf month names update honge.</div></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveStartMonth">Update</button></div>');
+}
+function saveStartMonth(){
+  var yr=parseInt(document.getElementById("sm-year").value);
+  var mo=parseInt(document.getElementById("sm-month").value);
+  appSettings.startYear=yr;appSettings.startMonth=mo;
+  updateScheduleMonths(yr,mo);selMonth=ci();sv();closeM();updateHeaderSub();go("home");
+  toast("✅ Start month — "+MONTHS_FULL[mo]+" "+yr);
+}
+function openDeadlineEdit(){
+  var opts="";for(var d=1;d<=28;d++)opts+='<option value="'+d+'"'+(d===dlDay()?' selected':'')+'>'+d+' tareekh</option>';
+  openM('<div class="mdl-head"><h3>⏰ Deadline Day</h3><div class="mdl-desc">Har mahine committee jama karne ki deadline konsi tareekh hai?</div></div><div class="mdl-body"><div class="fld"><label class="lbl">Deadline Day</label><select id="dl-day" class="sel" style="margin:0">'+opts+'</select></div></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveDeadline">Save</button></div>');
+}
+function saveDeadline(){
+  appSettings.deadlineDay=parseInt(document.getElementById("dl-day").value);
+  sv();closeM();toast("✅ Deadline: "+appSettings.deadlineDay+" tareekh");
+}
+
+function openTemplates(){
+  var rt=(appSettings.templates&&appSettings.templates.reminder)||"";
+  var mt=(appSettings.templates&&appSettings.templates.mubarak)||"";
+  openM('<div class="mdl-head"><h3>📝 Message Templates</h3><div class="mdl-desc">Variables: <code style="background:#f0ede4;padding:2px 6px;border-radius:5px">{name}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px">{month}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px">{amount}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px">{deadline}</code></div></div><div class="mdl-body"><div class="fld"><label class="lbl">📱 Reminder Message</label><textarea id="tpl-rem" class="ta" style="min-height:110px">'+rt+'</textarea></div><div class="fld"><label class="lbl">🎉 Mubarak Message</label><textarea id="tpl-mub" class="ta" style="min-height:90px">'+mt+'</textarea></div></div><div class="mdl-btns"><button class="bs" data-act="resetTemplates">↺ Reset</button><button class="bp" data-act="saveTemplates">Save</button></div>');
+}
+function saveTemplates(){
+  if(!appSettings.templates)appSettings.templates={};
+  appSettings.templates.reminder=document.getElementById("tpl-rem").value;
+  appSettings.templates.mubarak=document.getElementById("tpl-mub").value;
+  sv();closeM();toast("✅ Templates saved");
+}
+function doResetTemplates(){
+  appSettings.templates={
+    reminder:"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏",
+    mubarak:"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!"
+  };
+  sv();closeM();toast("↺ Templates reset");
+}
+
+// Export/Import
 function doExport(){
-  var d={version:3,exportedAt:new Date().toISOString(),members:members,schedule:schedule,payments:payments};
+  var d=allData();d.exportedAt=new Date().toISOString();
   var blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
-  var url=URL.createObjectURL(blob), a=document.createElement("a");
+  var url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download="committee-backup-"+tdy()+".json";
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   toast("✅ Backup downloaded");
@@ -570,16 +974,28 @@ document.getElementById("file-inp").addEventListener("change",function(e){
     try{
       var d=JSON.parse(ev.target.result);if(!d.members||!d.schedule)throw 0;
       var js=JSON.stringify(d);
-      openM('<h3>Restore?</h3><p style="color:var(--t2);font-size:13px;margin-bottom:13px"><strong>'+d.members.length+' members</strong>, <strong>'+d.schedule.length+' months</strong>. Current data replace ho jayega.</p><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="dorestore" id="rbtn">Restore</button></div>');
+      openM('<div class="mdl-head"><h3>📥 Restore Backup?</h3></div><div class="mdl-body"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+d.members.length+' members</strong>, <strong>'+d.schedule.length+' months</strong> ka data milega. Current data replace ho jayega.</p></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="doRestore" id="rbtn">Restore</button></div>');
       var rb=document.getElementById("rbtn");if(rb)rb.dataset.json=js;
     }catch(ex){toast("⚠️ Invalid file")}
   };
   reader.readAsText(file);e.target.value="";
 });
 
-// INIT
-R.home();
-
+// ===== INIT =====
+function updateHeaderSub(){
+  var sub=document.querySelector('.hdr small');
+  if(sub&&schedule.length)sub.textContent=schedule.length+' Months • '+schedule[0].month+' – '+schedule[schedule.length-1].month;
+}
+setSS("syncing","Loading...");
+fbLoad().then(function(){
+  document.getElementById("loading").style.display="none";
+  document.getElementById("app").style.display="block";
+  updateHeaderSub();R.home();setSS("ok");fbListen();
+}).catch(function(){
+  document.getElementById("loading").style.display="none";
+  document.getElementById("app").style.display="block";
+  updateHeaderSub();R.home();setSS("err","Offline mode");fbListen();
+});
 })();
 </script>
 </body>
