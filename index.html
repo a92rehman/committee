@@ -213,6 +213,8 @@ function unpaid(mi){return members.filter(function(m){return !paid(mi,m.id)})}
 function paidAmt(mi){var s=0;for(var i=0;i<members.length;i++)if(paid(mi,members[i].id))s+=members[i].monthly;return s}
 function memById(id){for(var i=0;i<members.length;i++)if(members[i].id===id)return members[i];return null}
 function memByName(n){for(var i=0;i<members.length;i++)if(members[i].name===n)return members[i];return null}
+function getMonths(name){var res=[];for(var i=0;i<schedule.length;i++){for(var j=0;j<schedule[i].receivers.length;j++){if(schedule[i].receivers[j].name===name)res.push({idx:i,month:schedule[i].month,amount:schedule[i].receivers[j].amount})}}return res}
+function memOpts(selName){var h='<option value="">-- Select Member --</option>';for(var i=0;i<members.length;i++){h+='<option value="'+members[i].name+'"'+(members[i].name===selName?' selected':'')+'>'+members[i].name+' ('+fmtK(members[i].monthly)+'/mo)</option>'}return h}
 
 // ===== TOAST =====
 var _tt;
@@ -369,7 +371,11 @@ R.members = function(){
   } else {
     for(var i=0;i<members.length;i++){
       var m=members[i];
-      h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="avatar">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(m.monthly)+'/mo &nbsp;•&nbsp; <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div></div></div><div style="display:flex;gap:6px;margin-top:9px"><button class="bicon" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button>'+(m.phone?'<button class="bicon" style="flex:1" data-act="chatmem" data-mid="'+m.id+'">💬 Chat</button>':'')+'<button class="bicon" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
+      var mons=getMonths(m.name);
+      var monBadges="";
+      if(mons.length){for(var j=0;j<mons.length;j++){monBadges+='<span style="display:inline-block;background:var(--gold-l);color:var(--gold);padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;margin:2px 3px 0 0">🎯 '+mons[j].month+' ('+fmtK(mons[j].amount)+')</span>'}}
+      else{monBadges='<span style="display:inline-block;background:#fde8e6;color:var(--r);padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;margin-top:2px">⚠ No month assigned</span>'}
+      h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="avatar">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(m.monthly)+'/mo &nbsp;•&nbsp; <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+monBadges+'</div></div></div><div style="display:flex;gap:6px;margin-top:9px"><button class="bicon" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button>'+(m.phone?'<button class="bicon" style="flex:1" data-act="chatmem" data-mid="'+m.id+'">💬 Chat</button>':'')+'<button class="bicon" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
     }
   }
   root.innerHTML=h;
@@ -487,6 +493,18 @@ document.addEventListener("click", function(e){
   }
 });
 
+// ===== AUTO-FILL AMOUNT =====
+document.addEventListener("change",function(e){
+  var sel=e.target;
+  if(sel.tagName==="SELECT"&&sel.dataset.f==="name"){
+    var m=memByName(sel.value);
+    if(m){
+      var amtInp=sel.closest(".rec-r").querySelector('[data-f="amount"]');
+      if(amtInp&&!amtInp.value)amtInp.value=m.monthly;
+    }
+  }
+});
+
 // ===== MEMBER FORM =====
 function openMemForm(mid){
   var m=mid?memById(mid):{name:"",monthly:50000,phone:""};
@@ -542,7 +560,7 @@ function openMonthEdit(idx){
   var rh="";
   for(var j=0;j<s.receivers.length;j++){
     var r=s.receivers[j];
-    rh+='<div class="rec-r"><input class="inp" type="text" placeholder="Name" value="'+r.name+'" data-f="name"><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="'+r.amount+'" data-f="amount" style="max-width:100px"><button class="bicon" style="color:var(--r)" data-act="remrec">✕</button></div>';
+    rh+='<div class="rec-r"><select class="sel" style="margin:0;flex:1" data-f="name">'+memOpts(r.name)+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="'+r.amount+'" data-f="amount" style="max-width:100px"><button class="bicon" style="color:var(--r)" data-act="remrec">✕</button></div>';
   }
   openM(
     '<h3>'+s.month+'</h3>'+
@@ -556,7 +574,7 @@ function addRecRow(){
   var list=document.getElementById("rec-list");
   if(!list)return;
   var d=document.createElement("div");d.className="rec-r";
-  d.innerHTML='<input class="inp" type="text" placeholder="Name" value="" data-f="name"><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="" data-f="amount" style="max-width:100px"><button class="bicon" style="color:var(--r)" data-act="remrec">✕</button>';
+  d.innerHTML='<select class="sel" style="margin:0;flex:1" data-f="name">'+memOpts("")+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="" data-f="amount" style="max-width:100px"><button class="bicon" style="color:var(--r)" data-act="remrec">✕</button>';
   list.appendChild(d);
 }
 function saveMonthEdit(idx){
