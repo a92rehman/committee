@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f5d3f">
+<title>Committee Manager</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--g:#0f5d3f;--g2:#0a4a32;--gl:#e6f2ec;--gold:#c8932e;--gold-l:#fdf6e8;--r:#c0392b;--o:#d97e2e;--wa:#25D366;--bg:#faf9f6;--card:#fff;--line:#ebe9e2;--t1:#1a1a1a;--t2:#5a5a5a;--t3:#9a9a9a}
+html,body{background:var(--bg)}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--t1);min-height:100vh;max-width:520px;margin:0 auto;padding-bottom:78px;-webkit-font-smoothing:antialiased}
+
+.header{background:linear-gradient(160deg,var(--g),var(--g2));color:#fff;padding:22px 16px 16px}
+.header-inner{display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-ico{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:17px}
+.brand h1{font-size:16px;font-weight:700}
+.brand small{display:block;font-size:11px;opacity:.75;margin-top:1px;font-weight:400}
+.gear-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:9px;font-size:17px;cursor:pointer}
+
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;display:flex;background:#fff;border-top:1px solid var(--line);z-index:100;padding:4px 0 calc(env(safe-area-inset-bottom,0px) + 4px)}
+.nav-btn{flex:1;border:none;background:none;padding:8px 4px 4px;font-size:10px;color:var(--t3);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit;font-weight:500}
+.nav-btn.on{color:var(--g);font-weight:700}
+.nav-btn span{font-size:18px}
+
+.content{padding:14px}
+.pg{display:none}.pg.on{display:block}
+
+.card{background:var(--card);border-radius:13px;padding:14px 15px;margin-bottom:10px;border:1px solid var(--line)}
+
+.hero-card{background:linear-gradient(145deg,var(--g),var(--g2));color:#fff;padding:18px;border:none;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;background:rgba(200,147,46,.15)}
+.hero-lbl{font-size:10px;opacity:.8;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.hero-card h2{font-size:21px;margin:4px 0 5px;font-weight:700;position:relative}
+.hero-sub{font-size:13px;opacity:.9;font-weight:500;position:relative}
+.hero-badge{position:relative;float:right;background:rgba(255,255,255,.13);padding:5px 10px;border-radius:9px;text-align:center}
+.hero-badge .hv{font-size:16px;font-weight:700}
+.hero-badge .hl{font-size:9px;opacity:.85;text-transform:uppercase;letter-spacing:.5px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+.stat-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+.stat-val{font-size:17px;font-weight:700;margin-top:4px;letter-spacing:-.3px}
+.c-green{color:var(--g)}.c-warn{color:var(--o)}.c-gold{color:var(--gold)}.c-red{color:var(--r)}
+
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 12px}
+.sec-hdr h3{font-size:15px;font-weight:700}
+.sec-hdr small{font-size:11px;color:var(--t3);display:block;margin-top:1px}
+.sec-btn{background:var(--g);color:#fff;border:none;padding:7px 13px;border-radius:8px;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit}
+
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.avatar.gd{background:var(--gold-l);color:var(--gold)}
+
+.row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f5f3ed;gap:9px}
+.row:last-child{border-bottom:none}
+.rname{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ramt{font-size:11px;color:var(--t3);margin-top:1px}
+
+.chk{width:28px;height:28px;border-radius:8px;border:2px solid #d5d2c9;background:#fff;cursor:pointer;font-size:14px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit}
+.chk.on{background:var(--g);border-color:var(--g)}
+
+.bwa{background:var(--wa);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;font-family:inherit}
+.bwa-full{width:100%;padding:12px;background:var(--wa);color:#fff;border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;font-family:inherit}
+.bpri{background:var(--g);color:#fff;border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
+.bsec{background:#f0ede4;color:var(--t1);border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
+.bdng{background:#fde8e6;color:var(--r);border:none;border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
+.bicon{background:#f5f3ed;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;color:var(--t2);font-family:inherit}
+
+.sel{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);font-size:14px;background:#fff;color:var(--t1);margin-bottom:10px;font-family:inherit;font-weight:600;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a5a' fill='none' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+
+.prog{height:6px;background:#eee;border-radius:99px;overflow:hidden;margin-top:7px}
+.prog-bar{height:100%;border-radius:99px;transition:width .4s}
+
+.inp{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);font-size:14px;background:#fff;color:var(--t1);font-family:inherit}
+.inp:focus{outline:none;border-color:var(--g)}
+.lbl{display:block;font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+.fld{margin-bottom:13px}
+
+.sch-card{border-left:3px solid var(--line);padding:13px 13px 13px 12px}
+.sch-card.cur{border-left-color:var(--gold);background:linear-gradient(to right,#fdf6e8,#fff 60%)}
+.sch-card.past{opacity:.55}
+.sch-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3)}
+.sch-card.cur .sch-tag{color:var(--gold)}
+.sch-month{font-size:15px;font-weight:700;margin:3px 0}
+.badge{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#f5f3ed;color:var(--t1);margin:3px 3px 0 0}
+.sch-card.cur .badge{background:var(--gold);color:#fff}
+
+.modal-bg{position:fixed;inset:0;background:rgba(20,20,20,.55);z-index:300;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#fff;width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px);max-height:85vh;overflow-y:auto}
+.modal-bar{width:38px;height:4px;background:#ddd;border-radius:99px;margin:0 auto 13px}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:13px}
+.modal-btns{display:flex;gap:8px;margin-top:8px}
+.modal-btns button{flex:1}
+
+.sr{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer}
+.sr:not(:last-child){border-bottom:1px solid #f5f3ed}
+.sr:active{background:#f9f7f1}
+[data-act]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sr-ico{width:34px;height:34px;border-radius:9px;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.sr.dng .sr-ico{background:#fde8e6;color:var(--r)}
+.sr-ttl{font-size:13px;font-weight:600}
+.sr-desc{font-size:11px;color:var(--t3);margin-top:1px}
+
+.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);background:var(--t1);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:400;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none;max-width:calc(100% - 32px);opacity:0}
+.toast.vis{opacity:1}
+
+.done-card{text-align:center;padding:20px;background:linear-gradient(135deg,var(--gl),#fff);border:1px solid var(--gl)}
+.done-card .big{font-size:30px}
+.done-card p{margin-top:7px;font-weight:700;color:var(--g);font-size:14px}
+.done-card .sub{font-weight:500;color:var(--t2);font-size:12px;margin-top:3px}
+
+.pnd-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.pnd-hdr .pt{font-size:13px;font-weight:700;color:var(--o)}
+.pnd-ct{background:#fdeede;color:var(--o);padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+
+.file-inp{display:none}
+.sch-erow{display:flex;align-items:center;gap:9px;padding:9px 11px;background:#f9f7f1;border-radius:9px;margin-bottom:5px}
+.sch-erow .em{font-weight:700;font-size:12px;min-width:68px}
+.sch-erow .en{flex:1;font-size:12px;color:var(--t2)}
+.rec-r{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.rec-r .inp{padding:8px 11px;font-size:13px}
+</style>
+</head>
+<body ontouchstart="">
+
+<div class="header"><div class="header-inner">
+  <div class="brand"><div class="brand-ico">🏦</div><div><h1>Committee Manager</h1><small>13 Months • Jul 2026 – Jul 2027</small></div></div>
+  <button class="gear-btn" id="gear-btn">⚙</button>
+</div></div>
+
+<div class="content">
+  <div id="pg-home" class="pg on"></div>
+  <div id="pg-schedule" class="pg"></div>
+  <div id="pg-payments" class="pg"></div>
+  <div id="pg-members" class="pg"></div>
+  <div id="pg-more" class="pg"></div>
+</div>
+
+<nav class="nav" id="nav">
+  <button class="nav-btn on" data-tab="home"><span>🏠</span>Home</button>
+  <button class="nav-btn" data-tab="schedule"><span>📋</span>Schedule</button>
+  <button class="nav-btn" data-tab="payments"><span>💰</span>Payments</button>
+  <button class="nav-btn" data-tab="members"><span>👥</span>Members</button>
+  <button class="nav-btn" data-tab="more"><span>⚙</span>More</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal-box"></div></div>
+<input type="file" class="file-inp" id="file-inp" accept=".json">
+
+<script>
+(function(){
+
+// ===== DATA =====
+var DEF_SCH = [
+  {month:"July 2026",receivers:[{name:"AB",amount:50000}]},
+  {month:"Aug 2026",receivers:[{name:"AD",amount:50000}]},
+  {month:"Sep 2026",receivers:[{name:"Mamo Amir",amount:50000}]},
+  {month:"Oct 2026",receivers:[{name:"Bhai Amanullah",amount:50000}]},
+  {month:"Nov 2026",receivers:[{name:"Mamo Naveed",amount:50000}]},
+  {month:"Dec 2026",receivers:[{name:"Miss Mamona",amount:50000}]},
+  {month:"Jan 2027",receivers:[{name:"Miss Mamona",amount:50000}]},
+  {month:"Feb 2027",receivers:[{name:"Mama Amjad",amount:50000}]},
+  {month:"Mar 2027",receivers:[{name:"Miss Iffat",amount:50000}]},
+  {month:"Apr 2027",receivers:[{name:"Miss Abida",amount:25000},{name:"Sidi Farah",amount:15000}]},
+  {month:"May 2027",receivers:[{name:"Miss Nazish",amount:30000},{name:"Mis Usma + Iqra",amount:10000}]},
+  {month:"Jun 2027",receivers:[{name:"Mamo Naveed",amount:30000}]},
+  {month:"Jul 2027",receivers:[{name:"Miss Iffat",amount:50000}]}
+];
+var DEF_MEM = [
+  {id:"m1",name:"AB",monthly:50000,phone:""},
+  {id:"m2",name:"AD",monthly:50000,phone:""},
+  {id:"m3",name:"Mamo Amir",monthly:50000,phone:""},
+  {id:"m4",name:"Bhai Amanullah",monthly:50000,phone:""},
+  {id:"m5",name:"Mamo Naveed",monthly:80000,phone:""},
+  {id:"m6",name:"Miss Mamona",monthly:100000,phone:""},
+  {id:"m7",name:"Mama Amjad",monthly:50000,phone:""},
+  {id:"m8",name:"Miss Iffat",monthly:100000,phone:""},
+  {id:"m9",name:"Miss Abida",monthly:25000,phone:""},
+  {id:"m10",name:"Sidi Farah",monthly:15000,phone:""},
+  {id:"m11",name:"Miss Nazish",monthly:30000,phone:""},
+  {id:"m12",name:"Mis Usma + Iqra",monthly:10000,phone:""}
+];
+
+function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):JSON.parse(JSON.stringify(d))}catch(e){return JSON.parse(JSON.stringify(d))}}
+var members = ld("cm_mem", DEF_MEM);
+var schedule = ld("cm_sch", DEF_SCH);
+var payments = ld("cm_pay", {});
+var selMonth = curIdx();
+
+function sv(){
+  localStorage.setItem("cm_mem", JSON.stringify(members));
+  localStorage.setItem("cm_sch", JSON.stringify(schedule));
+  localStorage.setItem("cm_pay", JSON.stringify(payments));
+}
+
+// ===== UTILS =====
+function fmt(n){return Number(n).toLocaleString("en-PK")}
+function fmtK(n){return n>=100000?(n/100000)+"L":n>=1000?(n/1000)+"k":""+n}
+function ini(s){return s.split(/\s+/).slice(0,2).map(function(w){return w[0]}).join("").toUpperCase()}
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fmtD(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0].slice(2)}
+function curIdx(){var d=new Date(),y=d.getFullYear(),m=d.getMonth();if(y===2026&&m>=6)return m-6;if(y===2027&&m<=6)return m+6;return 0}
+function gid(){return "m"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function totM(){var s=0;for(var i=0;i<members.length;i++)s+=members[i].monthly;return s}
+function paid(mi,mid){return !!payments[mi+"-"+mid]}
+function payInfo(mi,mid){var v=payments[mi+"-"+mid];if(!v)return null;return typeof v==="object"?v:{paid:true,date:""}}
+function paidCt(mi){var c=0;for(var i=0;i<members.length;i++)if(paid(mi,members[i].id))c++;return c}
+function unpaid(mi){return members.filter(function(m){return !paid(mi,m.id)})}
+function paidAmt(mi){var s=0;for(var i=0;i<members.length;i++)if(paid(mi,members[i].id))s+=members[i].monthly;return s}
+function memById(id){for(var i=0;i<members.length;i++)if(members[i].id===id)return members[i];return null}
+function memByName(n){for(var i=0;i<members.length;i++)if(members[i].name===n)return members[i];return null}
+
+// ===== TOAST =====
+var _tt;
+function toast(msg){
+  var t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("vis");
+  clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove("vis")},2400);
+}
+
+// ===== MODAL =====
+function openM(h){
+  var box=document.getElementById("modal-box");
+  box.innerHTML='<div class="modal-bar"></div>'+h;
+  document.getElementById("modal-bg").classList.add("show");
+  document.body.style.overflow="hidden";
+}
+function closeM(){
+  document.getElementById("modal-bg").classList.remove("show");
+  document.body.style.overflow="";
+}
+document.getElementById("modal-bg").addEventListener("click",function(e){
+  if(e.target===this)closeM();
+});
+
+// ===== WHATSAPP =====
+function waOpen(phone,msg){
+  var c=phone.replace(/\D/g,"");
+  if(!c){toast("⚠️ Phone number nahi hai!");return}
+  window.open("https://wa.me/"+c+"?text="+encodeURIComponent(msg),"_blank");
+}
+function remindMsg(name,month,amount){
+  return "Assalam o Alaikum "+name+"!\n\nCommittee ka reminder:\nMonth: "+month+"\nAmount: Rs. "+fmt(amount)+"\n\nBaraye meharbani apni committee ki raqam jald az jald jama karwa dein. Shukriya! 🙏";
+}
+function mubarakMsg(name,month,total){
+  return "Mubarak ho "+name+"! 🎉\n\nIs mahine ("+month+") committee aap ki hai!\nTotal Amount: Rs. "+fmt(total)+"\n\nCommittee ki raqam jald transfer kar di jayegi. Shukriya!";
+}
+
+// ===== NAV =====
+document.getElementById("nav").addEventListener("click",function(e){
+  var btn=e.target.closest(".nav-btn");
+  if(!btn)return;
+  go(btn.dataset.tab);
+});
+document.getElementById("gear-btn").addEventListener("click",function(){go("more")});
+
+function go(tab){
+  var pages=document.querySelectorAll(".pg");
+  for(var i=0;i<pages.length;i++)pages[i].classList.remove("on");
+  document.getElementById("pg-"+tab).classList.add("on");
+  var btns=document.querySelectorAll(".nav-btn");
+  for(var i=0;i<btns.length;i++)btns[i].classList.remove("on");
+  var active=document.querySelector('.nav-btn[data-tab="'+tab+'"]');
+  if(active)active.classList.add("on");
+  window.scrollTo(0,0);
+  R[tab]();
+}
+
+// ===== ELEMENT HELPERS =====
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!==undefined)e.innerHTML=html;return e}
+function txt(s){return document.createTextNode(s)}
+
+// ===== RENDERERS =====
+var R = {};
+
+R.home = function(){
+  var root=document.getElementById("pg-home");
+  root.innerHTML="";
+  var CI=curIdx();
+  if(CI>=schedule.length){
+    root.innerHTML='<div class="card done-card"><div class="big">🎊</div><p>Committee Complete!</p><div class="sub">Mubarak!</div></div>';
+    return;
+  }
+  var s=schedule[CI], up=unpaid(CI), pc=paidCt(CI), TM=totM(), pa=paidAmt(CI);
+  var recNames=s.receivers.map(function(r){return r.name}).join(" + ");
+
+  // Hero
+  root.innerHTML =
+    '<div class="card hero-card">'+
+      '<div class="hero-badge"><div class="hv">'+pc+'/'+members.length+'</div><div class="hl">Paid</div></div>'+
+      '<div class="hero-lbl">Current Month</div>'+
+      '<h2>'+s.month+'</h2>'+
+      '<div class="hero-sub">🎯 '+recNames+'</div>'+
+    '</div>'+
+    '<div class="grid2">'+
+      '<div class="card" style="padding:12px 13px"><div class="stat-lbl">Monthly Pool</div><div class="stat-val c-green">'+fmt(TM)+'</div></div>'+
+      '<div class="card" style="padding:12px 13px"><div class="stat-lbl">Collected</div><div class="stat-val '+(pc===members.length?'c-green':'c-warn')+'">'+fmt(pa)+'</div></div>'+
+    '</div>';
+
+  if(pc===members.length){
+    // All paid
+    var doneHtml='<div class="card done-card"><div class="big">✅</div><p>Is mahine sab ne pay kar diya!</p><div class="sub">Committee '+recNames+' ko transfer karein</div></div>';
+    doneHtml+='<div class="card"><div style="font-size:13px;font-weight:700;margin-bottom:8px">🎉 Mubarak Message</div>';
+    for(var i=0;i<s.receivers.length;i++){
+      var r=s.receivers[i];
+      doneHtml+='<div class="row"><div class="avatar gd">'+ini(r.name)+'</div><div style="flex:1"><div class="rname">'+r.name+'</div><div class="ramt">Payout: Rs. '+fmt(r.amount*13)+'</div></div><button class="bwa" data-act="mubarak" data-name="'+r.name+'" data-mi="'+CI+'" data-total="'+(r.amount*13)+'">🎉 Send</button></div>';
+    }
+    doneHtml+='</div>';
+    root.insertAdjacentHTML("beforeend",doneHtml);
+  } else {
+    // Pending
+    var ph='<div class="card"><div class="pnd-hdr"><span class="pt">⏳ Abhi Pending</span><span class="pnd-ct">'+up.length+'</span></div>';
+    for(var i=0;i<up.length;i++){
+      var m=up[i];
+      ph+='<div class="row"><div class="avatar">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rname">'+m.name+'</div><div class="ramt">Rs. '+fmt(m.monthly)+'</div></div><button class="chk" data-act="qpay" data-mi="'+CI+'" data-mid="'+m.id+'" title="Mark paid">✓</button><button class="bwa" style="padding:7px 9px" data-act="remind" data-mid="'+m.id+'" data-mi="'+CI+'">📱</button></div>';
+    }
+    ph+='<button class="bwa-full" data-act="remindall" data-mi="'+CI+'">📢 Sab Pending Ko Remind Karein</button></div>';
+    root.insertAdjacentHTML("beforeend",ph);
+  }
+};
+
+R.schedule = function(){
+  var root=document.getElementById("pg-schedule");
+  var CI=curIdx();
+  var h='<div class="sec-hdr"><div><h3>📋 Schedule</h3><small>13 mahine ki committee</small></div><button class="sec-btn" data-act="schedit">✎ Edit</button></div>';
+  for(var i=0;i<schedule.length;i++){
+    var s=schedule[i], cur=i===CI, past=i<CI;
+    var cls=cur?"cur":past?"past":"";
+    var tag=cur?"⭐ Current":past?"✓ Done":"Month "+(i+1);
+    var tp=0;for(var j=0;j<s.receivers.length;j++)tp+=s.receivers[j].amount*13;
+    var badges="";for(var j=0;j<s.receivers.length;j++){var r=s.receivers[j];badges+='<span class="badge">'+r.name+' · '+fmtK(r.amount)+'</span>';}
+    h+='<div class="card sch-card '+cls+'"><div style="display:flex;justify-content:space-between;gap:8px"><div style="flex:1;min-width:0"><div class="sch-tag">'+tag+'</div><div class="sch-month">'+s.month+'</div><div style="margin-top:5px">'+badges+'</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Payout</div><div style="font-weight:700;font-size:14px;color:var(--g);margin-top:2px">Rs. '+fmt(tp)+'</div></div></div></div>';
+  }
+  root.innerHTML=h;
+};
+
+R.payments = function(){
+  var root=document.getElementById("pg-payments");
+  var mi=selMonth, TM=totM(), pc=paidCt(mi), pa=paidAmt(mi);
+  var pct=members.length?(pc/members.length*100):0;
+  var opts="";
+  for(var i=0;i<schedule.length;i++){
+    opts+='<option value="'+i+'"'+(i===mi?" selected":"")+'>'+schedule[i].month+(i===curIdx()?" • Current":"")+'</option>';
+  }
+  var h='<div class="sec-hdr"><div><h3>💰 Payments</h3><small>Har month ka record</small></div></div>';
+  h+='<select class="sel" id="pay-sel">'+opts+'</select>';
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:600">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+members.length+' paid</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(TM)+'</div></div></div><div class="prog"><div class="prog-bar" style="width:'+pct+'%;background:'+(pc===members.length?'var(--g)':'var(--o)')+'"></div></div></div>';
+
+  for(var i=0;i<members.length;i++){
+    var m=members[i], info=payInfo(mi,m.id), ip=!!info;
+    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+(ip?'var(--g)':'var(--line)')+'"><div style="display:flex;align-items:center;gap:10px"><button class="chk'+(ip?' on':'')+'" data-act="togpay" data-mi="'+mi+'" data-mid="'+m.id+'">'+(ip?'✓':'')+'</button><div style="flex:1;min-width:0"><div class="rname" style="color:'+(ip?'var(--g)':'var(--t1)')+'">'+m.name+'</div><div class="ramt">Rs. '+fmt(m.monthly)+(ip&&info.date?' · '+fmtD(info.date):'')+'</div></div>'+(ip?'':'<button class="bwa" style="padding:7px 9px" data-act="remind" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>')+'</div></div>';
+  }
+  root.innerHTML=h;
+
+  document.getElementById("pay-sel").addEventListener("change",function(){
+    selMonth=parseInt(this.value);R.payments();
+  });
+};
+
+R.members = function(){
+  var root=document.getElementById("pg-members");
+  var h='<div class="sec-hdr"><div><h3>👥 Members</h3><small>'+members.length+' members • Pool: Rs. '+fmt(totM())+'</small></div><button class="sec-btn" data-act="addmem">+ Add</button></div>';
+  if(!members.length){
+    h+='<div style="text-align:center;padding:40px 20px;color:var(--t3)"><div style="font-size:34px;opacity:.5;margin-bottom:8px">👥</div><p>Koi member nahi. Add karein.</p></div>';
+  } else {
+    for(var i=0;i<members.length;i++){
+      var m=members[i];
+      h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="avatar">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(m.monthly)+'/mo &nbsp;•&nbsp; <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div></div></div><div style="display:flex;gap:6px;margin-top:9px"><button class="bicon" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button>'+(m.phone?'<button class="bicon" style="flex:1" data-act="chatmem" data-mid="'+m.id+'">💬 Chat</button>':'')+'<button class="bicon" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
+    }
+  }
+  root.innerHTML=h;
+};
+
+R.more = function(){
+  var root=document.getElementById("pg-more");
+  var at=0;
+  for(var i=0;i<schedule.length;i++)for(var j=0;j<members.length;j++)if(paid(i,members[j].id))at+=members[j].monthly;
+  var exp=totM()*schedule.length;
+  var pct=exp?Math.round(at/exp*100):0;
+
+  root.innerHTML=
+    '<div class="sec-hdr"><div><h3>⚙ Settings</h3><small>Backup, restore, options</small></div></div>'+
+    '<div class="card" style="padding:15px;background:linear-gradient(135deg,var(--gl),#fff)"><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:600">Total Collected (All-Time)</div><div style="font-size:23px;font-weight:800;color:var(--g);margin-top:3px">Rs. '+fmt(at)+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">of Rs. '+fmt(exp)+' expected ('+pct+'%)</div></div>'+
+    '<div class="card" style="padding:0;overflow:hidden">'+
+      '<div class="sr" data-act="export"><div class="sr-ico">⬇</div><div style="flex:1"><div class="sr-ttl">Backup (Export)</div><div class="sr-desc">Saara data JSON file mein download</div></div><div style="color:var(--t3)">›</div></div>'+
+      '<div class="sr" data-act="import"><div class="sr-ico">⬆</div><div style="flex:1"><div class="sr-ttl">Restore (Import)</div><div class="sr-desc">Backup file se data wapas laayein</div></div><div style="color:var(--t3)">›</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:0;overflow:hidden">'+
+      '<div class="sr" data-act="schedit"><div class="sr-ico">📅</div><div style="flex:1"><div class="sr-ttl">Edit Schedule</div><div class="sr-desc">Kis month kis ki committee</div></div><div style="color:var(--t3)">›</div></div>'+
+      '<div class="sr" data-act="gomem"><div class="sr-ico">👥</div><div style="flex:1"><div class="sr-ttl">Manage Members</div><div class="sr-desc">Add, edit, remove members</div></div><div style="color:var(--t3)">›</div></div>'+
+    '</div>'+
+    '<div class="card" style="padding:0;overflow:hidden">'+
+      '<div class="sr dng" data-act="resetpay"><div class="sr-ico">↺</div><div style="flex:1"><div class="sr-ttl">Reset Payments</div><div class="sr-desc">Saare payment marks clear</div></div><div style="color:var(--t3)">›</div></div>'+
+      '<div class="sr dng" data-act="resetall"><div class="sr-ico">⚠</div><div style="flex:1"><div class="sr-ttl">Reset Everything</div><div class="sr-desc">Sab delete, default pe wapas</div></div><div style="color:var(--t3)">›</div></div>'+
+    '</div>'+
+    '<div style="text-align:center;padding:20px 10px;color:var(--t3);font-size:11px">Committee Manager v2.0<br>Backup zaroor lein!</div>';
+};
+
+// ===== EVENT DELEGATION =====
+document.addEventListener("click", function(e){
+  var btn = e.target.closest("[data-act]");
+  if(!btn) return;
+  var act = btn.dataset.act;
+  var mid = btn.dataset.mid;
+  var mi = btn.dataset.mi ? parseInt(btn.dataset.mi) : 0;
+
+  if(act==="qpay"){
+    payments[mi+"-"+mid]={paid:true,date:today()};
+    sv(); R.home(); toast("✅ Paid mark ho gaya");
+  }
+  else if(act==="remind"){
+    var m=memById(mid);
+    if(!m)return;
+    if(!m.phone){toast("⚠️ Pehle phone number add karein (Members tab)");return}
+    waOpen(m.phone, remindMsg(m.name, schedule[mi].month, m.monthly));
+  }
+  else if(act==="remindall"){
+    var up=unpaid(mi).filter(function(m){return m.phone});
+    if(!up.length){toast("⚠️ Kisi pending ka phone nahi!");return}
+    for(var i=0;i<up.length;i++){
+      (function(m,delay){setTimeout(function(){waOpen(m.phone,remindMsg(m.name,schedule[mi].month,m.monthly))},delay)})(up[i],i*1000);
+    }
+    toast("📢 "+up.length+" reminders...");
+  }
+  else if(act==="mubarak"){
+    var name=btn.dataset.name, total=parseInt(btn.dataset.total);
+    var m=memByName(name);
+    if(!m||!m.phone){toast("⚠️ Phone number add karein!");return}
+    waOpen(m.phone, mubarakMsg(name, schedule[mi].month, total));
+  }
+  else if(act==="togpay"){
+    var k=mi+"-"+mid;
+    if(payments[k])delete payments[k];
+    else payments[k]={paid:true,date:today()};
+    sv(); R.payments();
+  }
+  else if(act==="addmem"){openMemForm(null)}
+  else if(act==="editmem"){openMemForm(mid)}
+  else if(act==="chatmem"){
+    var m=memById(mid);
+    if(m&&m.phone)waOpen(m.phone,"Assalam o Alaikum!");
+  }
+  else if(act==="delmem"){confirmDel(mid)}
+  else if(act==="schedit"){openSchEdit()}
+  else if(act==="editmonth"){openMonthEdit(parseInt(btn.dataset.idx))}
+  else if(act==="addreceiver"){addRecRow()}
+  else if(act==="remrec"){btn.closest(".rec-r").remove()}
+  else if(act==="savemonth"){saveMonthEdit(parseInt(btn.dataset.idx))}
+  else if(act==="backsch"){openSchEdit()}
+  else if(act==="export"){doExport()}
+  else if(act==="import"){document.getElementById("file-inp").click()}
+  else if(act==="gomem"){go("members")}
+  else if(act==="resetpay"){
+    openM('<h3>Reset Payments?</h3><p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px">Saare payment marks delete ho jayenge. Members aur schedule safe rahega.</p><div class="modal-btns"><button class="bsec" data-act="closemodal">Cancel</button><button class="bdng" data-act="doresetpay">Reset</button></div>');
+  }
+  else if(act==="doresetpay"){
+    payments={};sv();closeM();R.more();toast("↺ Payments reset");
+  }
+  else if(act==="resetall"){
+    openM('<h3>⚠ Reset Everything?</h3><p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px"><strong>Members, schedule, payments — sab delete ho jayega.</strong><br><br><strong style="color:var(--r)">Pehle backup zaroor le lein!</strong></p><div class="modal-btns"><button class="bsec" data-act="closemodal">Cancel</button><button class="bdng" data-act="doresetall">Reset All</button></div>');
+  }
+  else if(act==="doresetall"){
+    members=JSON.parse(JSON.stringify(DEF_MEM));
+    schedule=JSON.parse(JSON.stringify(DEF_SCH));
+    payments={};sv();closeM();R.more();toast("✅ Sab reset ho gaya");
+  }
+  else if(act==="savemem"){saveMemForm(btn.dataset.mid||null)}
+  else if(act==="dodelmem"){
+    var id=btn.dataset.mid;
+    members=members.filter(function(m){return m.id!==id});
+    var keys=Object.keys(payments);
+    for(var i=0;i<keys.length;i++){if(keys[i].endsWith("-"+id))delete payments[keys[i]]}
+    sv();closeM();R.members();toast("🗑 Deleted");
+  }
+  else if(act==="closemodal"){closeM()}
+  else if(act==="donesch"){closeM()}
+  else if(act==="dorestore"){
+    try{
+      var d=JSON.parse(btn.dataset.json);
+      members=d.members;schedule=d.schedule;payments=d.payments||{};
+      sv();closeM();R.more();toast("✅ Data restored");
+    }catch(ex){toast("⚠️ Error")}
+  }
+});
+
+// ===== MEMBER FORM =====
+function openMemForm(mid){
+  var m=mid?memById(mid):{name:"",monthly:50000,phone:""};
+  if(!m)return;
+  var title=mid?"Edit Member":"Add New Member";
+  openM(
+    '<h3>'+title+'</h3>'+
+    '<div class="fld"><label class="lbl">Name</label><input id="f-name" class="inp" type="text" placeholder="Member ka naam" value="'+m.name+'"></div>'+
+    '<div class="fld"><label class="lbl">Monthly Amount (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" placeholder="50000" value="'+m.monthly+'"></div>'+
+    '<div class="fld"><label class="lbl">Phone (with country code)</label><input id="f-phone" class="inp" type="tel" inputmode="tel" placeholder="923001234567" value="'+m.phone+'"></div>'+
+    '<div class="modal-btns"><button class="bsec" data-act="closemodal">Cancel</button><button class="bpri" data-act="savemem" data-mid="'+(mid||"")+'">Save</button></div>'
+  );
+  setTimeout(function(){document.getElementById("f-name").focus()},150);
+}
+function saveMemForm(mid){
+  var name=document.getElementById("f-name").value.trim();
+  var amt=parseInt(document.getElementById("f-amt").value)||0;
+  var ph=document.getElementById("f-phone").value.trim();
+  if(!name){toast("⚠️ Name zaroori hai");return}
+  if(amt<=0){toast("⚠️ Amount zaroori hai");return}
+  if(mid){
+    for(var i=0;i<members.length;i++){
+      if(members[i].id===mid){members[i].name=name;members[i].monthly=amt;members[i].phone=ph;break}
+    }
+    toast("✅ Member updated");
+  } else {
+    members.push({id:gid(),name:name,monthly:amt,phone:ph});
+    toast("✅ Member added");
+  }
+  sv();closeM();R.members();
+}
+function confirmDel(mid){
+  var m=memById(mid);if(!m)return;
+  openM(
+    '<h3>Delete Member?</h3>'+
+    '<p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px"><strong>'+m.name+'</strong> ko delete karna chahte hain?</p>'+
+    '<div class="modal-btns"><button class="bsec" data-act="closemodal">Cancel</button><button class="bdng" data-act="dodelmem" data-mid="'+mid+'">Delete</button></div>'
+  );
+}
+
+// ===== SCHEDULE EDIT =====
+function openSchEdit(){
+  var rows="";
+  for(var i=0;i<schedule.length;i++){
+    var s=schedule[i];
+    var names=s.receivers.map(function(r){return r.name+" ("+fmtK(r.amount)+")"}).join(", ");
+    rows+='<div class="sch-erow"><div class="em">'+s.month+'</div><div class="en">'+names+'</div><button class="bicon" data-act="editmonth" data-idx="'+i+'">✎</button></div>';
+  }
+  openM('<h3>📅 Edit Schedule</h3><p style="color:var(--t2);font-size:12px;margin-bottom:12px">Kisi mahine ka receiver change karein:</p>'+rows+'<div class="modal-btns" style="margin-top:12px"><button class="bpri" style="width:100%" data-act="donesch">Done</button></div>');
+}
+function openMonthEdit(idx){
+  var s=schedule[idx];
+  var rh="";
+  for(var j=0;j<s.receivers.length;j++){
+    var r=s.receivers[j];
+    rh+='<div class="rec-r"><input class="inp" type="text" placeholder="Name" value="'+r.name+'" data-f="name"><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="'+r.amount+'" data-f="amount" style="max-width:100px"><button class="bicon" style="color:var(--r)" data-act="remrec">✕</button></div>';
+  }
+  openM(
+    '<h3>'+s.month+'</h3>'+
+    '<p style="color:var(--t2);font-size:12px;margin-bottom:9px">Kis ki committee hai is mahine?</p>'+
+    '<div id="rec-list">'+rh+'</div>'+
+    '<button class="bsec" style="width:100%;margin-top:7px" data-act="addreceiver">+ Add Receiver</button>'+
+    '<div class="modal-btns" style="margin-top:12px"><button class="bsec" data-act="backsch">Back</button><button class="bpri" data-act="savemonth" data-idx="'+idx+'">Save</button></div>'
+  );
+}
+function addRecRow(){
+  var list=document.getElementById("rec-list");
+  if(!list)return;
+  var d=document.createElement("div");d.className="rec-r";
+  d.innerHTML='<input class="inp" type="text" placeholder="Name" value="" data-f="name"><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="" data-f="amount" style="max-width:100px"><button class="bicon" style="color:var(--r)" data-act="remrec">✕</button>';
+  list.appendChild(d);
+}
+function saveMonthEdit(idx){
+  var rows=document.querySelectorAll("#rec-list .rec-r");
+  var recs=[];
+  for(var i=0;i<rows.length;i++){
+    var n=rows[i].querySelector('[data-f="name"]').value.trim();
+    var a=parseInt(rows[i].querySelector('[data-f="amount"]').value)||0;
+    if(n&&a>0)recs.push({name:n,amount:a});
+  }
+  if(!recs.length){toast("⚠️ Kam se kam ek receiver add karein");return}
+  schedule[idx].receivers=recs;
+  sv();openSchEdit();toast("✅ Schedule updated");
+}
+
+// ===== BACKUP / RESTORE =====
+function doExport(){
+  var d={version:2,exportedAt:new Date().toISOString(),members:members,schedule:schedule,payments:payments};
+  var blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url;a.download="committee-backup-"+today()+".json";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("✅ Backup downloaded");
+}
+document.getElementById("file-inp").addEventListener("change",function(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      if(!d.members||!d.schedule)throw new Error("bad");
+      var jsonStr=JSON.stringify(d);
+      openM(
+        '<h3>Restore Backup?</h3>'+
+        '<p style="color:var(--t2);font-size:13px;line-height:1.5;margin-bottom:13px">File mein <strong>'+d.members.length+' members</strong> aur <strong>'+d.schedule.length+' months</strong> ka data hai. Current data replace ho jayega.</p>'+
+        '<div class="modal-btns"><button class="bsec" data-act="closemodal">Cancel</button><button class="bpri" data-act="dorestore">Restore</button></div>'
+      );
+      var rbtn=document.querySelector('[data-act="dorestore"]');
+      if(rbtn)rbtn.dataset.json=jsonStr;
+    }catch(ex){toast("⚠️ Invalid file")}
+  };
+  reader.readAsText(file);
+  e.target.value="";
+});
+
+// ===== INIT =====
+R.home();
+
+})();
+</script>
+</body>
+</html>
