@@ -306,17 +306,28 @@ function remMsg(name,month,amt){var tpl=(appSettings.templates&&appSettings.temp
 function mubMsg(name,month,tot){var tpl=(appSettings.templates&&appSettings.templates.mubarak)||"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!";return fillTpl(tpl,name,month,tot)}
 function mById(id){for(var i=0;i<members.length;i++)if(members[i].id===id)return members[i];return null}
 function mName(mid){var m=mById(mid);return m?m.name:"?"}
-function getMonths(mid){var res=[];for(var i=0;i<schedule.length;i++)for(var j=0;j<schedule[i].receivers.length;j++)if(schedule[i].receivers[j].mid===mid)res.push({idx:i,month:schedule[i].month,amount:schedule[i].receivers[j].amount});return res}
+function getMonths(mid){
+  var res=[];
+  if(!schedule||!mid)return res;
+  for(var i=0;i<schedule.length;i++){
+    if(!schedule[i]||!schedule[i].receivers)continue;
+    for(var j=0;j<schedule[i].receivers.length;j++){
+      var rec=schedule[i].receivers[j];
+      if(rec&&rec.mid===mid)res.push({idx:i,month:schedule[i].month||"",amount:rec.amount||0});
+    }
+  }
+  return res;
+}
 function mOpts(sel){var h='<option value="">-- Member chunein --</option>';for(var i=0;i<members.length;i++)h+='<option value="'+members[i].id+'"'+(members[i].id===sel?' selected':'')+'>'+members[i].name+'</option>';return h}
 function anyIntroUnsent(){for(var i=0;i<members.length;i++)if(!introSent[members[i].id])return true;return false}
 
 // ===== GROUP / CONTRIBUTOR HELPERS =====
 function isGrp(mem){return mem.contributors&&mem.contributors.length>0}
 function memMonthly(mem){
-  if(isGrp(mem))return mem.contributors.reduce(function(s,c){return s+(+c.amount||0)},0);
-  // If member has schedule assignments, monthly = sum of all slot amounts
+  if(!mem)return 0;
+  if(isGrp(mem))return(mem.contributors||[]).reduce(function(s,c){return s+(+c.amount||0)},0);
   var mons=getMonths(mem.id);
-  if(mons.length>0)return mons.reduce(function(s,mn){return s+mn.amount},0);
+  if(mons.length>0)return mons.reduce(function(s,mn){return s+(mn.amount||0)},0);
   return +mem.monthly||0;
 }
 // Is simple member paid?
@@ -356,12 +367,12 @@ function lvSave(){
 function allData(){return{members:members,schedule:schedule,payments:payments,reminders:reminders,introSent:introSent,payouts:payouts,notes:notes,appSettings:appSettings}}
 function applyData(data){
   if(!data||!data.members||!data.members.length)return false;
-  members=data.members;schedule=data.schedule;
+  members=data.members;schedule=data.schedule||[];
   payments=data.payments||{};reminders=data.reminders||{};
   introSent=data.introSent||{};payouts=data.payouts||{};notes=data.notes||{};
   if(data.appSettings)appSettings=data.appSettings;
-  // ensure contributors field
   for(var i=0;i<members.length;i++)if(!members[i].contributors)members[i].contributors=[];
+  for(var i=0;i<schedule.length;i++)if(!schedule[i].receivers)schedule[i].receivers=[];
   return true;
 }
 function sv(){lvSave();if(isRemote)return;clearTimeout(syncTimer);syncTimer=setTimeout(fbSave,700)}
@@ -444,7 +455,15 @@ function reRender(){var a=document.querySelector('.pg.on');if(a){var t=a.id.repl
 var R={};
 
 R.home=function(){
-  var root=document.getElementById("pg-home"), CI=ci();
+  var root=document.getElementById("pg-home");
+  try{ _renderHome(root); }
+  catch(err){
+    root.innerHTML='<div class="card" style="border-left:3px solid var(--r);padding:16px"><div style="font-size:13px;font-weight:700;color:var(--r);margin-bottom:6px">⚠️ Display Error</div><div style="font-size:12px;color:var(--t2)">'+err.message+'</div><button class="bp" style="margin-top:12px;font-size:13px" onclick="selMonth=ci();R.home()">🔄 Try Again</button></div>';
+    console.error("R.home error:",err);
+  }
+};
+function _renderHome(root){
+  var CI=ci();
   var TM=totM(), totalMonths=schedule.length;
   // use selMonth for display, but default to current month
   var mi=selMonth;
@@ -569,7 +588,7 @@ R.home=function(){
   h+='</div></div>';
 
   root.innerHTML=h;
-};
+} // end _renderHome
 
 R.timeline=function(){
   var root=document.getElementById("pg-timeline"),CI=ci();
