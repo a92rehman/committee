@@ -312,7 +312,13 @@ function anyIntroUnsent(){for(var i=0;i<members.length;i++)if(!introSent[members
 
 // ===== GROUP / CONTRIBUTOR HELPERS =====
 function isGrp(mem){return mem.contributors&&mem.contributors.length>0}
-function memMonthly(mem){if(isGrp(mem))return mem.contributors.reduce(function(s,c){return s+(+c.amount||0)},0);return +mem.monthly||0}
+function memMonthly(mem){
+  if(isGrp(mem))return mem.contributors.reduce(function(s,c){return s+(+c.amount||0)},0);
+  // If member has schedule assignments, monthly = sum of all slot amounts
+  var mons=getMonths(mem.id);
+  if(mons.length>0)return mons.reduce(function(s,mn){return s+mn.amount},0);
+  return +mem.monthly||0;
+}
 // Is simple member paid?
 function isPd(mi,mid){return!!payments[mi+"-"+mid]}
 // Is contributor paid?
