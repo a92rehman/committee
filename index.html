@@ -440,13 +440,18 @@ function waOpen(ph,msg){var c=ph.replace(/\D/g,"");if(!c){toast("⚠️ Phone na
 function introMsg(mid){
   var m=mById(mid);if(!m)return"";
   var mons=getMonths(mid);
+  var monthly=memMonthly(m);
+  var pool=totM(); // payout per turn = total monthly pool
+  var totalPayout=pool*mons.length;
   var msg="Assalam o Alaikum "+m.name+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n";
-  msg+="💰 Monthly: Rs. "+fmt(memMonthly(m))+"\n";
+  msg+="💰 Monthly Contribution: Rs. "+fmt(monthly)+"\n";
   if(mons.length===1){
-    msg+="🎯 Committee Month: "+mons[0].month+" → Payout: Rs. "+fmt(mons[0].amount*13)+"\n";
+    msg+="🎯 Committee Month: "+mons[0].month+"\n";
+    msg+="💎 Payout: Rs. "+fmt(pool)+"\n";
   } else if(mons.length>1){
-    msg+="🎯 Aapki Committee:\n";
-    for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Payout: Rs. "+fmt(mons[i].amount*13)+"\n";
+    msg+="🎯 Aapki "+mons.length+" Committees:\n";
+    for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(pool)+"\n";
+    msg+="💎 Total Payout: Rs. "+fmt(totalPayout)+"\n";
   }
   msg+="\n🏦 Payment Details:\n"+getBankStr();
   msg+="\n\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
@@ -454,18 +459,21 @@ function introMsg(mid){
 }
 // Intro message for individual contributor inside a group
 function contribIntroMsg(contribName, contribAmount, groupMid){
+  var m=mById(groupMid);
   var mons=getMonths(groupMid);
+  var pool=totM();
+  var grpTotal=m?memMonthly(m):contribAmount;
+  // contributor's proportional share of the pool
+  var share=grpTotal>0?Math.round(contribAmount/grpTotal*pool):0;
   var msg="Assalam o Alaikum "+contribName+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n";
   msg+="💰 Monthly Contribution: Rs. "+fmt(contribAmount)+"\n";
   if(mons.length===1){
-    var share=mons[0].amount>0?Math.round(contribAmount/mons[0].amount*(mons[0].amount*13)):0;
-    msg+="🎯 Committee Month: "+mons[0].month+"\n   Aapka share: Rs. "+fmt(share)+"\n";
+    msg+="🎯 Committee Month: "+mons[0].month+"\n";
+    msg+="💎 Aapka Payout: Rs. "+fmt(share)+"\n";
   } else if(mons.length>1){
-    msg+="🎯 Aapki Committee:\n";
-    for(var i=0;i<mons.length;i++){
-      var share=mons[i].amount>0?Math.round(contribAmount/mons[i].amount*(mons[i].amount*13)):0;
-      msg+="  "+(i+1)+". "+mons[i].month+" → Aapka share: Rs. "+fmt(share)+"\n";
-    }
+    msg+="🎯 Aapki "+mons.length+" Committees:\n";
+    for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(share)+"\n";
+    msg+="💎 Total Payout: Rs. "+fmt(share*mons.length)+"\n";
   }
   msg+="\n🏦 Payment Details:\n"+getBankStr();
   msg+="\n\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
@@ -571,7 +579,7 @@ function _renderHome(root){
     h+='<button class="bwa" style="font-size:11px;padding:6px 10px" data-act="confirmpayout" data-mi="'+mi+'">💸 Mark Transferred</button>';
     h+='</div>';
     h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f0e8cc;display:flex;gap:6px;flex-wrap:wrap">';
-    for(var i=0;i<s.receivers.length;i++){var r=s.receivers[i],nm=mName(r.mid),tp=r.amount*13;h+='<button class="bwa" style="font-size:11px;padding:6px 10px" data-act="mubarak" data-mid="'+r.mid+'" data-mi="'+mi+'" data-total="'+tp+'">🎉 '+nm+' ko Mubarak</button>';}
+    for(var i=0;i<s.receivers.length;i++){var r=s.receivers[i],nm=mName(r.mid),tp=totM();h+='<button class="bwa" style="font-size:11px;padding:6px 10px" data-act="mubarak" data-mid="'+r.mid+'" data-mi="'+mi+'" data-total="'+tp+'">🎉 '+nm+' ko Mubarak</button>';}
     h+='</div>';
   } else if(isCurrent&&!isFuture){
     h+='<div style="margin-top:8px;padding:7px 10px;background:'+(dl.cls==='ok'?'var(--gl)':dl.cls==='warn'?'var(--ol)':'var(--rl)')+';border-radius:8px;font-size:12px;font-weight:600;color:'+(dl.cls==='ok'?'var(--g)':dl.cls==='warn'?'var(--o)':'var(--r)')+'">'+dl.ico+' '+dl.txt+'</div>';
@@ -609,8 +617,7 @@ function _renderHome(root){
   if(mi<=CI){
     var upcomingHtml='';
     for(var i=CI+1;i<Math.min(CI+3,totalMonths);i++){
-      var sc2=schedule[i],tp2=0;
-      for(var j=0;j<sc2.receivers.length;j++)tp2+=sc2.receivers[j].amount*13;
+      var sc2=schedule[i],tp2=totM();
       var rn2=sc2.receivers.map(function(r){return mName(r.mid)}).join(", ");
       upcomingHtml+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;'+(i<Math.min(CI+2,totalMonths-1)?'border-bottom:1px solid #f5f3ed':'')+'"><div style="width:34px;height:34px;border-radius:9px;background:var(--gl);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">M'+(i+1)+'</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+sc2.month+'</div><div style="font-size:11px;color:var(--t3)">🎯 '+rn2+'</div></div><div style="font-size:12px;font-weight:700;color:var(--g);flex-shrink:0">'+fmtK(tp2)+'</div></div>';
     }
@@ -633,7 +640,7 @@ R.timeline=function(){
   for(var i=0;i<schedule.length;i++){
     var sc=schedule[i],cur=i===CI,past=i<CI,cls=cur?"cur":past?"past":"";
     var tag=cur?"⭐ Current":past?"✓ Done":"Month "+(i+1);
-    var tp=0;for(var j=0;j<sc.receivers.length;j++)tp+=sc.receivers[j].amount*13;
+    var tp=totM();
     var badges="";for(var j=0;j<sc.receivers.length;j++){var rm=mById(sc.receivers[j].mid);badges+='<span class="badge '+(cur?'bg-gd':'bg-g')+'">'+(rm?rm.name:"?")+' · '+fmtK(sc.receivers[j].amount)+(rm&&isGrp(rm)?' 👥':'')+'</span>';}
     var tf=payouts[i]&&payouts[i].confirmed?'<span class="badge bg-g">💸 Transferred '+fmtD(payouts[i].date)+'</span>':'';
     var noteText=notes[i]||"";
