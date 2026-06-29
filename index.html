@@ -269,7 +269,7 @@ var reminders=ld("cm_rem",{});
 var introSent=ld("cm_intro",{});
 var payouts=ld("cm_po",{});
 var notes=ld("cm_notes",{});
-var appSettings=ld("cm_settings",{startYear:2026,startMonth:6,deadlineDay:5,templates:{reminder:"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏",mubarak:"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!"}});
+var appSettings=ld("cm_settings",{startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{name:"",bank:"",account:""},templates:{reminder:"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein.\n\n🏦 Payment Details:\n{bank_details}\n\nShukriya! 🙏",mubarak:"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!"}});
 var selMonth=ci(); // start on current month, shared between home & payments
 var syncTimer=null;
 var isRemote=false;
@@ -301,7 +301,20 @@ function gid(){return"m"+Date.now().toString(36)+Math.random().toString(36).slic
 function dlDay(){return appSettings.deadlineDay||5}
 function isLate(){return new Date().getDate()>dlDay()}
 function dlInfo(){var r=dlDay()-new Date().getDate();if(r>3)return{cls:"ok",ico:"✅",txt:r+" din mein deadline",sub:dlDay()+" tareekh tak jama karein"};if(r>0)return{cls:"warn",ico:"⚠️",txt:"Sirf "+r+" din baqi!",sub:"Jaldi karein — "+dlDay()+" tareekh deadline hai"};if(r===0)return{cls:"late",ico:"🔴",txt:"Aaj deadline hai!",sub:dlDay()+" tareekh — abhi jama karwayein"};return{cls:"late",ico:"🔴",txt:Math.abs(r)+" din late!",sub:dlDay()+" tareekh guzar chuki — urgent"}}
-function fillTpl(tpl,name,month,amount){return tpl.replace(/{name}/g,name).replace(/{month}/g,month).replace(/{amount}/g,fmt(amount)).replace(/{deadline}/g,dlDay()+" tareekh")}
+function getBankStr(){
+  var bd=appSettings.bankDetails||{};
+  if(!bd.bank&&!bd.account&&!bd.name)return"(Bank details add nahi ki gayi — Settings mein add karein)";
+  var s="";
+  if(bd.bank)s+="Bank: "+bd.bank+"\n";
+  if(bd.account)s+="Account: "+bd.account+"\n";
+  if(bd.name)s+="Name: "+bd.name;
+  return s.trim();
+}
+function fillTpl(tpl,name,month,amount){
+  return tpl.replace(/{name}/g,name).replace(/{month}/g,month)
+    .replace(/{amount}/g,fmt(amount)).replace(/{deadline}/g,dlDay()+" tareekh")
+    .replace(/{bank_details}/g,getBankStr());
+}
 function remMsg(name,month,amt){var tpl=(appSettings.templates&&appSettings.templates.reminder)||"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏";return fillTpl(tpl,name,month,amt)}
 function mubMsg(name,month,tot){var tpl=(appSettings.templates&&appSettings.templates.mubarak)||"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!";return fillTpl(tpl,name,month,tot)}
 function mById(id){for(var i=0;i<members.length;i++)if(members[i].id===id)return members[i];return null}
@@ -435,7 +448,8 @@ function introMsg(mid){
     msg+="🎯 Aapki Committee:\n";
     for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Payout: Rs. "+fmt(mons[i].amount*13)+"\n";
   }
-  msg+="\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
+  msg+="\n🏦 Payment Details:\n"+getBankStr();
+  msg+="\n\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
   return msg;
 }
 // Intro message for individual contributor inside a group
@@ -444,24 +458,26 @@ function contribIntroMsg(contribName, contribAmount, groupMid){
   var msg="Assalam o Alaikum "+contribName+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n";
   msg+="💰 Monthly Contribution: Rs. "+fmt(contribAmount)+"\n";
   if(mons.length===1){
-    // Contributor's share of payout = their proportion
-    var payout=mons[0].amount*13;
-    var share=Math.round(contribAmount/mons[0].amount*payout);
-    msg+="🎯 Committee Month: "+mons[0].month+"\n";
-    msg+="   Aapka share: Rs. "+fmt(share)+"\n";
+    var share=mons[0].amount>0?Math.round(contribAmount/mons[0].amount*(mons[0].amount*13)):0;
+    msg+="🎯 Committee Month: "+mons[0].month+"\n   Aapka share: Rs. "+fmt(share)+"\n";
   } else if(mons.length>1){
     msg+="🎯 Aapki Committee:\n";
     for(var i=0;i<mons.length;i++){
-      var payout=mons[i].amount*13;
-      var share=Math.round(contribAmount/mons[i].amount*payout);
+      var share=mons[i].amount>0?Math.round(contribAmount/mons[i].amount*(mons[i].amount*13)):0;
       msg+="  "+(i+1)+". "+mons[i].month+" → Aapka share: Rs. "+fmt(share)+"\n";
     }
   }
-  msg+="\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
+  msg+="\n🏦 Payment Details:\n"+getBankStr();
+  msg+="\n\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
   return msg;
 }
 
-// ===== NAV =====
+// ===== REFRESH ALL =====
+function refreshAll(){
+  // Re-render all tabs so calculations stay in sync
+  R.home();R.timeline();R.members();R.payments();
+}
+function svRefresh(){sv();refreshAll()}
 document.getElementById("nav").addEventListener("click",function(e){var btn=e.target.closest(".nav-btn");if(!btn)return;go(btn.dataset.tab)});
 function go(tab){
   var pgs=document.querySelectorAll(".pg");for(var i=0;i<pgs.length;i++)pgs[i].classList.remove("on");
@@ -638,8 +654,11 @@ R.members=function(){
     var grpBadge=grp?'<span class="badge bg-pu">👥 Group ('+m.contributors.length+' contributors)</span>':'';
     var contribHtml="";
     if(grp){
-      contribHtml='<div style="margin-top:7px;background:#f9f7f1;border-radius:8px;padding:7px 10px">';
-      for(var j=0;j<m.contributors.length;j++){var c=m.contributors[j];contribHtml+='<div style="font-size:11px;color:var(--t2);padding:2px 0">• '+c.name+' — Rs. '+fmt(c.amount)+(c.phone?' ('+c.phone+')':'')+'</div>';}
+      contribHtml='<div style="margin-top:9px;border-top:1px solid var(--line);padding-top:9px">';
+      for(var j=0;j<m.contributors.length;j++){
+        var c=m.contributors[j];
+        contribHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'+(j<m.contributors.length-1?'border-bottom:1px solid #f9f7f2':'')+'"><div class="av sm">'+ini(c.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(c.amount)+'/mo'+(c.phone?' • '+c.phone:' • <span style="color:var(--o)">No phone</span>')+'</div></div>'+(c.phone?'<button class="bi" style="font-size:11px;padding:5px 9px;flex-shrink:0" data-act="contribIntro" data-mid="'+m.id+'" data-cid="'+c.id+'">📣 Intro</button>':'')+'</div>';
+      }
       contribHtml+='</div>';
     }
     h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(memMonthly(m))+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+' '+grpBadge+'</div>'+contribHtml+'</div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editmem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignmonth" data-mid="'+m.id+'">📅 Month</button><button class="bi" style="flex:1" data-act="intro" data-mid="'+m.id+'">'+(introSent[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+(m.phone?'<button class="bi" data-act="chatmem" data-mid="'+m.id+'">💬</button>':'')+'<button class="bi" style="color:var(--r)" data-act="delmem" data-mid="'+m.id+'">🗑</button></div></div>';
@@ -689,10 +708,10 @@ document.addEventListener("click",function(e){
   var btn=e.target.closest("[data-act]");if(!btn)return;
   var act=btn.dataset.act,mid=btn.dataset.mid,cid=btn.dataset.cid,mi=btn.dataset.mi?parseInt(btn.dataset.mi):0;
 
-  if(act==="qpay"){payments[mi+"-"+mid]={paid:true,date:tdy()};sv();R.home();toast("✅ Paid")}
-  else if(act==="qcpay"){payments[mi+"-"+mid+"-"+cid]={paid:true,date:tdy()};sv();R.home();toast("✅ Paid")}
-  else if(act==="togpay"){var k=mi+"-"+mid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};sv();R.payments()}
-  else if(act==="togcpay"){var k=mi+"-"+mid+"-"+cid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};sv();R.payments()}
+  if(act==="qpay"){payments[mi+"-"+mid]={paid:true,date:tdy()};svRefresh();toast("✅ Paid")}
+  else if(act==="qcpay"){payments[mi+"-"+mid+"-"+cid]={paid:true,date:tdy()};svRefresh();toast("✅ Paid")}
+  else if(act==="togpay"){var k=mi+"-"+mid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};svRefresh()}
+  else if(act==="togcpay"){var k=mi+"-"+mid+"-"+cid;payments[k]?delete payments[k]:payments[k]={paid:true,date:tdy()};svRefresh()}
   else if(act==="remind"){
     var m=mById(mid);if(!m)return;
     if(!m.phone){toast("⚠️ Pehle phone add karein");return}
@@ -794,8 +813,15 @@ document.addEventListener("click",function(e){
     setTimeout(function(){sv();reRender()},delay+200);
     toast("📣 "+sent+" intro messages...");
   }
-  else if(act==="confirmpayout"){payouts[mi]={confirmed:true,date:tdy()};sv();R.home();toast("💸 Transfer confirmed!")}
-  else if(act==="assignmonth"){openAssignMonth(mid)}
+  else if(act==="confirmpayout"){payouts[mi]={confirmed:true,date:tdy()};svRefresh();toast("💸 Transfer confirmed!")}
+  else if(act==="contribIntro"){
+    var m=mById(mid);if(!m||!isGrp(m))return;
+    var c=null;for(var i=0;i<m.contributors.length;i++)if(m.contributors[i].id===btn.dataset.cid){c=m.contributors[i];break}
+    if(!c||!c.phone){toast("⚠️ Contributor ka phone add karein!");return}
+    introSent[mid]=true;sv();
+    waOpen(c.phone,contribIntroMsg(c.name,c.amount,mid));
+    toast("📣 Intro sent to "+c.name);reRender();
+  }
   else if(act==="saveAssignMonth"){saveAssignMonth(btn.dataset.mid)}
   else if(act==="editmem"){openMemForm(mid)}
   else if(act==="chatmem"){var m=mById(mid);if(m&&m.phone)waOpen(m.phone,"Assalam o Alaikum!")}
@@ -805,7 +831,7 @@ document.addEventListener("click",function(e){
     members=members.filter(function(m){return m.id!==id});
     for(var i=0;i<schedule.length;i++)schedule[i].receivers=schedule[i].receivers.filter(function(r){return r.mid!==id});
     var ks=Object.keys(payments);for(var i=0;i<ks.length;i++)if(ks[i].indexOf("-"+id)!==-1)delete payments[ks[i]];
-    delete introSent[id];sv();closeM();R.members();toast("🗑 Deleted");
+    delete introSent[id];svRefresh();closeM();toast("🗑 Deleted");
   }
   else if(act==="savemem"){saveMemForm(btn.dataset.mid||"")}
   else if(act==="addcontrib"){addContribRow()}
@@ -821,6 +847,8 @@ document.addEventListener("click",function(e){
   else if(act==="saveStartMonth"){saveStartMonth()}
   else if(act==="changeDeadline"){openDeadlineEdit()}
   else if(act==="saveDeadline"){saveDeadline()}
+  else if(act==="editBankDetails"){openBankDetails()}
+  else if(act==="saveBankDetails"){saveBankDetails()}
   else if(act==="editTemplates"){openTemplates()}
   else if(act==="saveTemplates"){saveTemplates()}
   else if(act==="resetTemplates"){doResetTemplates()}
@@ -981,7 +1009,7 @@ function saveMonthEdit(idx){
   var rows=document.querySelectorAll("#rec-list .rec-r"),recs=[];
   for(var i=0;i<rows.length;i++){var mid=rows[i].querySelector('[data-f="mid"]').value,a=parseInt(rows[i].querySelector('[data-f="amount"]').value)||0;if(mid&&a>0)recs.push({mid:mid,amount:a})}
   if(!recs.length){toast("⚠️ Kam se kam ek receiver select karein");return}
-  schedule[idx].receivers=recs;sv();closeM();R.timeline();toast("✅ Updated");
+  schedule[idx].receivers=recs;svRefresh();closeM();toast("✅ Updated");
 }
 
 // ===== NOTES =====
@@ -990,7 +1018,7 @@ function openNoteEdit(idx){
   openM('<div class="mdl-head"><h3>📝 Note</h3><div class="mdl-desc">'+s.month+'</div></div><div class="mdl-body"><div class="fld"><textarea id="note-ta" class="ta" placeholder="Note likhein... (e.g. Naveed ne half diya, baaki agle hafte)">'+cur+'</textarea></div></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="savenote" data-idx="'+idx+'">Save</button></div>');
   setTimeout(function(){var t=document.getElementById("note-ta");if(t)t.focus()},150);
 }
-function saveNote(idx){var t=document.getElementById("note-ta");if(!t)return;var val=t.value.trim();if(val)notes[idx]=val;else delete notes[idx];sv();closeM();R.timeline();toast("📝 Note saved")}
+function saveNote(idx){var t=document.getElementById("note-ta");if(!t)return;var val=t.value.trim();if(val)notes[idx]=val;else delete notes[idx];svRefresh();closeM();toast("📝 Note saved")}
 
 // ===== SETTINGS =====
 function openSettings(){
@@ -1003,6 +1031,7 @@ function openSettings(){
   var endY=appSettings.startYear+Math.floor((appSettings.startMonth+endIdx)/12);
   var endM=(appSettings.startMonth+endIdx)%12;
   var eLabel=MONTHS_FULL[endM]+" "+endY;
+  var bd=appSettings.bankDetails||{};
   openM(
     '<div class="mdl-head"><h3>⚙ Settings</h3></div>'+
     '<div class="mdl-body">'+
@@ -1025,6 +1054,7 @@ function openSettings(){
     '<div style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:0">'+
       '<div class="sr" data-act="changestartmonth"><div class="sr-i">📅</div><div style="flex:1"><div class="sr-ttl">Start Month</div><div class="sr-desc">'+sLabel+' → '+eLabel+'</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
       '<div class="sr" data-act="changeDeadline"><div class="sr-i">⏰</div><div style="flex:1"><div class="sr-ttl">Deadline Day</div><div class="sr-desc">Har mahine '+dlDay()+' tareekh tak</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
+      '<div class="sr" data-act="editBankDetails"><div class="sr-i">🏦</div><div style="flex:1"><div class="sr-ttl">Bank Details</div><div class="sr-desc">'+(bd.bank||bd.account?(bd.bank||'')+(bd.account?' • '+bd.account:''):'Intro messages ke liye add karein')+'</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
       '<div class="sr" data-act="editTemplates"><div class="sr-i">📝</div><div style="flex:1"><div class="sr-ttl">Message Templates</div><div class="sr-desc">Reminder aur mubarak messages edit karein</div></div><div style="color:var(--t3);font-size:18px">›</div></div>'+
     '</div>'+
     '<div class="mdl-body" style="padding-top:14px;padding-bottom:0">'+
@@ -1040,6 +1070,17 @@ function openSettings(){
   );
 }
 
+function openBankDetails(){
+  var bd=appSettings.bankDetails||{};
+  openM('<div class="mdl-head"><h3>🏦 Bank Details</h3><div class="mdl-desc">Yeh details intro aur reminder messages mein jaayegi</div></div><div class="mdl-body"><div class="fld"><label class="lbl">Bank Name</label><input id="bd-bank" class="inp" type="text" placeholder="e.g. HBL, Meezan, JazzCash" value="'+(bd.bank||"")+'"></div><div class="fld"><label class="lbl">Account Number / IBAN</label><input id="bd-acc" class="inp" type="text" placeholder="e.g. PK36MEZN0001234567890101" value="'+(bd.account||"")+'"></div><div class="fld"><label class="lbl">Account Holder Name</label><input id="bd-name" class="inp" type="text" placeholder="e.g. Muhammad Ali" value="'+(bd.name||"")+'"></div></div><div class="mdl-btns"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveBankDetails">Save</button></div>');
+}
+function saveBankDetails(){
+  if(!appSettings.bankDetails)appSettings.bankDetails={};
+  appSettings.bankDetails.bank=document.getElementById("bd-bank").value.trim();
+  appSettings.bankDetails.account=document.getElementById("bd-acc").value.trim();
+  appSettings.bankDetails.name=document.getElementById("bd-name").value.trim();
+  sv();closeM();toast("✅ Bank details saved");
+}
 function openStartMonth(){
   var yOpts="";for(var y=2024;y<=2030;y++)yOpts+='<option value="'+y+'"'+(y===appSettings.startYear?' selected':'')+'>'+y+'</option>';
   var mOpts2="";for(var m=0;m<12;m++)mOpts2+='<option value="'+m+'"'+(m===appSettings.startMonth?' selected':'')+'>'+MONTHS_FULL[m]+'</option>';
