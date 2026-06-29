@@ -315,7 +315,7 @@ function fillTpl(tpl,name,month,amount){
     .replace(/{amount}/g,fmt(amount)).replace(/{deadline}/g,dlDay()+" tareekh")
     .replace(/{bank_details}/g,getBankStr());
 }
-function remMsg(name,month,amt){var tpl=(appSettings.templates&&appSettings.templates.reminder)||"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏";return fillTpl(tpl,name,month,amt)}
+function remMsg(name,month,amt){var tpl=(appSettings.templates&&appSettings.templates.reminder)||"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein.\n\n🏦 Payment Details:\n{bank_details}\n\nShukriya! 🙏";return fillTpl(tpl,name,month,amt)}
 function mubMsg(name,month,tot){var tpl=(appSettings.templates&&appSettings.templates.mubarak)||"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!";return fillTpl(tpl,name,month,tot)}
 function mById(id){for(var i=0;i<members.length;i++)if(members[i].id===id)return members[i];return null}
 function mName(mid){var m=mById(mid);return m?m.name:"?"}
@@ -1122,7 +1122,7 @@ function saveTemplates(){
 }
 function doResetTemplates(){
   appSettings.templates={
-    reminder:"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein. Shukriya! 🙏",
+    reminder:"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein.\n\n🏦 Payment Details:\n{bank_details}\n\nShukriya! 🙏",
     mubarak:"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal: Rs. {amount}\n\nJald transfer ho jayegi. Shukriya!"
   };
   sv();closeM();toast("↺ Templates reset");
