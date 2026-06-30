@@ -218,6 +218,7 @@ var SET=ld("cm2_set",{startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{ban
 
 var selMo=curMo();
 var _st=null,_rem=false;
+var _moWork=null; // working copy of a month's slots while the Edit Month modal is open
 
 // ============================
 // UTILS
@@ -310,6 +311,18 @@ function totalPool(){
 }
 
 function mOpts(sel){var h='<option value="">-- Select --</option>';for(var i=0;i<M.length;i++)h+='<option value="'+M[i].id+'"'+(M[i].id===sel?' selected':'')+'>'+M[i].name+'</option>';return h}
+
+// For a given member+month-index, if they're in a group slot, return the OTHER people in that same group
+function groupPartners(mid,monthIdx){
+  var slots=S[monthIdx]?(S[monthIdx].slots||[]):[];
+  for(var j=0;j<slots.length;j++){
+    if(slots[j].type==="group"){
+      var inThis=(slots[j].parts||[]).some(function(p){return p.mid===mid});
+      if(inThis)return(slots[j].parts||[]).filter(function(p){return p.mid!==mid}).map(function(p){return{mid:p.mid,name:mNm(p.mid),share:p.share}});
+    }
+  }
+  return null;
+}
 
 // ============================
 // PAYMENT HELPERS (Feature 1: partial payments)
@@ -415,11 +428,27 @@ function applyD(d){
   for(var i=0;i<S.length;i++){if(!S[i].slots)S[i].slots=[];for(var j=0;j<S[i].slots.length;j++)if(S[i].slots[j].type==="group"&&!S[i].slots[j].parts)S[i].slots[j].parts=[];}
   return true;
 }
-function sv(){lvSave();if(_rem)return;clearTimeout(_st);_st=setTimeout(fbPush,700)}
+function sv(){
+  // Keep a rolling safety snapshot BEFORE applying this change, only if current state looks valid
+  if(M&&M.length>0){
+    try{localStorage.setItem("cm2_safety_snapshot",JSON.stringify({members:M,schedule:S,payments:PAY,reminders:REM,introSent:INTRO,payouts:PAYOUT,notes:NOTES,appSettings:SET,savedAt:new Date().toISOString()}));}catch(e){}
+  }
+  lvSave();if(_rem)return;clearTimeout(_st);_st=setTimeout(fbPush,700);
+}
 function svAll(){sv();try{R.home();R.timeline();R.members();R.payments()}catch(e){console.error(e)}}
 
 function setSS(s,l){var d=document.getElementById("sd"),lb=document.getElementById("sl");if(d)d.className="sync-dot "+s;if(lb)lb.textContent=l||(s==="ok"?"Synced":s==="syncing"?"Syncing...":"Offline")}
-function fbPush(){setSS("syncing");fetch(FB+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(allD())}).then(function(r){setSS(r.ok?"ok":"err")}).catch(function(){setSS("err","Offline")})}
+function fbPush(){
+  // SAFETY GUARD: never push if this looks like an accidental wipe
+  // (e.g. local state somehow has 0 members while we know data existed before).
+  if(!M||M.length===0){
+    console.warn("Blocked fbPush: member list is empty, refusing to overwrite Firebase.");
+    setSS("err","Blocked (empty data)");
+    return;
+  }
+  setSS("syncing");
+  fetch(FB+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(allD())}).then(function(r){setSS(r.ok?"ok":"err")}).catch(function(){setSS("err","Offline")});
+}
 function fbPull(){return fetch(FB+'.json').then(function(r){return r.json()}).then(function(d){if(applyD(d))lvSave()})}
 function fbListen(){
   try{var es=new EventSource(FB+'.json');
@@ -439,7 +468,7 @@ function fbListen(){
 var _tt;
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("vis");clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove("vis")},2400)}
 function openM(h){document.getElementById("mdl").innerHTML='<div class="mdl-bar"></div>'+h;document.getElementById("mbg").classList.add("show");document.body.style.overflow="hidden"}
-function closeM(){document.getElementById("mbg").classList.remove("show");document.body.style.overflow=""}
+function closeM(){document.getElementById("mbg").classList.remove("show");document.body.style.overflow="";_moWork=null}
 document.getElementById("mbg").addEventListener("click",function(e){if(e.target===this)closeM()});
 
 document.getElementById("nav").addEventListener("click",function(e){var b=e.target.closest(".nav-btn");if(!b)return;go(b.dataset.tab)});
@@ -573,9 +602,35 @@ R.members=function(){
   var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+M.length+' members • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>';
   for(var i=0;i<M.length;i++){
     var m=M[i],slots=mSlots(m.id),total=mMonthly(m.id);
-    var mb=slots.length?slots.map(function(sl){return'<span class="badge bgd">🎯 '+sl.month+(sl.type==="group"?' 👥':'')+'</span>'}).join(''):'<span class="badge br">⚠ No month</span>';
     var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
-    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+'</div></div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button><button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄':'📣')+'</button><button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button></div></div>';
+
+    var monthsHtml='';
+    if(!slots.length){
+      monthsHtml='<div style="margin-top:6px"><span class="badge br">⚠ No month assigned</span></div>';
+    } else {
+      monthsHtml='<div style="margin-top:8px">';
+      for(var s=0;s<slots.length;s++){
+        var sl=slots[s];
+        if(sl.type==="single"){
+          monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">🎯 '+sl.month+' — Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(sl.share)+'</div></div>';
+        } else {
+          var partners=groupPartners(m.id,sl.idx)||[];
+          monthsHtml+='<div style="background:#f3e8ff;border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:#7c3aed">👥 '+sl.month+' — Group (aapka hissa: Rs. '+fmt(sl.monthlyShare)+'/mo → Payout: Rs. '+fmt(sl.share)+')</div>';
+          if(partners.length){
+            monthsHtml+='<div style="margin-top:6px;border-top:1px solid #e9d8fd;padding-top:6px">';
+            for(var p=0;p<partners.length;p++){
+              var pm=mBy(partners[p].mid);
+              monthsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><div class="av sm">'+ini(partners[p].name)+'</div><div style="flex:1;font-size:11px;color:var(--t2)">'+partners[p].name+' — Rs. '+fmt(partners[p].share)+'/mo'+(pm&&pm.phone?'':' <span style="color:var(--o)">(no phone)</span>')+'</div>'+(pm&&pm.phone?'<button class="bi" style="padding:4px 8px;font-size:10px" data-act="intro1" data-mid="'+partners[p].mid+'">'+(INTRO[partners[p].mid]?'🔄':'📣')+'</button>':'')+'</div>';
+            }
+            monthsHtml+='</div>';
+          }
+          monthsHtml+='</div>';
+        }
+      }
+      monthsHtml+='</div>';
+    }
+
+    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo total • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:3px">'+is+'</div></div></div>'+monthsHtml+'<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button><button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄 Resend':'📣 Intro')+'</button><button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button></div></div>';
   }
   el.innerHTML=h;
 };
@@ -710,6 +765,8 @@ document.addEventListener("click",function(e){
     delete INTRO[id];svAll();closeM();toast("🗑 Deleted");
   }
   else if(a==="saveMem"){saveMemForm(b.dataset.mid||"")}
+  else if(a==="addGrpContribRow"){addGrpContribRow()}
+  else if(a==="remGrpContribRow"){b.closest(".cf").remove();updGrpTotal()}
 
   // ===== Feature 2: Flexible month assignment =====
   else if(a==="assignMo"){openAssign(mid)}
@@ -718,6 +775,23 @@ document.addEventListener("click",function(e){
   else if(a==="saveAssign"){saveAssign(b.dataset.mid)}
 
   else if(a==="editMo"){openMoEdit(idx)}
+  else if(a==="addSingleSlot"){_moWork.push({type:"single",mid:""});_moRender(idx)}
+  else if(a==="addGroupSlot"){_moWork.push({type:"group",parts:[{mid:"",share:0}]});_moRender(idx)}
+  else if(a==="remMoSlot"){var jdx=parseInt(b.dataset.jdx);_moWork.splice(jdx,1);_moRender(idx)}
+  else if(a==="addGrpPart"){var jdx=parseInt(b.dataset.jdx);_moWork[jdx].parts.push({mid:"",share:0});_moRender(idx)}
+  else if(a==="remGrpPart"){var jdx=parseInt(b.dataset.jdx),kdx=parseInt(b.dataset.kdx);_moWork[jdx].parts.splice(kdx,1);if(_moWork[jdx].parts.length===0)_moWork.splice(jdx,1);_moRender(idx)}
+  else if(a==="saveMoSlots"){
+    // Validate: every slot must have a member selected
+    var valid=true;
+    for(var i=0;i<_moWork.length;i++){
+      var sl=_moWork[i];
+      if(sl.type==="single"&&!sl.mid)valid=false;
+      if(sl.type==="group")for(var k=0;k<sl.parts.length;k++)if(!sl.parts[k].mid||!sl.parts[k].share)valid=false;
+    }
+    if(!valid){toast("⚠️ Har row mein member aur amount select karein");return}
+    S[idx].slots=_moWork;_moWork=null;
+    svAll();closeM();toast("✅ "+S[idx].month+" updated");
+  }
   else if(a==="delMonth"){confirmDelMonth(idx)}
   else if(a==="doDelMonth"){doDelMonth(parseInt(b.dataset.idx))}
   else if(a==="addMonth"){openAddMonth()}
@@ -742,19 +816,46 @@ document.addEventListener("click",function(e){
   else if(a==="export"){doExport()}
   else if(a==="import"){document.getElementById("fi").click()}
   else if(a==="sync"){setSS("syncing");fbPull().then(function(){svAll();setSS("ok");toast("✅ Synced")}).catch(function(){toast("⚠️ Fail")})}
+  else if(a==="recoverSnapshot"){doRecoverSnapshot()}
+  else if(a==="doApplySnapshot"){doApplySnapshot()}
   else if(a==="toggleDZ"){var dz=document.getElementById("dz");if(dz)dz.style.display=dz.style.display==="none"?"block":"none"}
   else if(a==="resetP"){openM('<div class="mdl-h"><h3>Reset Payments?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6">Sirf payments clear honge. Members safe.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doResetP">Reset</button></div>')}
   else if(a==="doResetP"){PAY={};PAYOUT={};svAll();closeM();toast("↺ Reset")}
-  else if(a==="resetAll"){openM('<div class="mdl-h"><h3>⚠️ Reset Everything?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>Sab delete ho jayega.</strong><br><span style="color:var(--r);font-weight:600">Pehle backup lein!</span></p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doResetAll">Reset All</button></div>')}
-  else if(a==="doResetAll"){M=JSON.parse(JSON.stringify(DEF_MEM));S=JSON.parse(JSON.stringify(DEF_SCH));PAY={};REM={};INTRO={};PAYOUT={};NOTES={};SET={startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}};svAll();closeM();toast("✅ Reset")}
+  else if(a==="resetAll"){openM('<div class="mdl-h"><h3>⚠️ Reset Everything?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>Sab delete ho jayega — members, schedule, payments, sab.</strong><br><span style="color:var(--r);font-weight:600">Pehle backup zaroor lein!</span></p><div class="fld" style="margin-top:14px"><label class="lbl">Confirm karne ke liye "DELETE" likhein</label><input id="reset-confirm" class="inp" type="text" placeholder="DELETE"></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doResetAll">Reset All</button></div>')}
+  else if(a==="doResetAll"){
+    var cf=document.getElementById("reset-confirm");
+    if(!cf||cf.value.trim().toUpperCase()!=="DELETE"){toast('⚠️ "DELETE" likhna zaroori hai');return}
+    M=JSON.parse(JSON.stringify(DEF_MEM));S=JSON.parse(JSON.stringify(DEF_SCH));PAY={};REM={};INTRO={};PAYOUT={};NOTES={};SET={startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}};svAll();closeM();toast("✅ Reset");
+  }
   else if(a==="doRestore"){try{applyD(JSON.parse(b.dataset.json));svAll();closeM();toast("✅ Restored")}catch(x){toast("⚠️ Error")}}
   else if(a==="closeM"){closeM()}
+});
+
+document.addEventListener("input",function(e){
+  if(e.target.id==="f-amt-g"||(e.target.className&&e.target.className.indexOf("gc-amt")!==-1)){
+    updGrpTotal();
+  }
 });
 
 document.addEventListener("change",function(e){
   if(e.target.tagName==="SELECT"&&e.target.dataset.f==="mid"){
     var m=mBy(e.target.value);
     if(m){var ai=e.target.closest(".rec-r");if(ai){var amtIn=ai.querySelector('[data-f="amount"]');if(amtIn&&!amtIn.value)amtIn.value=m.monthly}}
+  }
+  // Month-slot editor live updates
+  var act=e.target.dataset.actChange;
+  if(act&&_moWork){
+    var jdx=parseInt(e.target.dataset.jdx);
+    if(act==="setSingle"){_moWork[jdx].mid=e.target.value}
+    else if(act==="setGrpMid"){var kdx=parseInt(e.target.dataset.kdx);_moWork[jdx].parts[kdx].mid=e.target.value;
+      // auto-fill share with member's standard monthly if share is 0
+      if(!_moWork[jdx].parts[kdx].share){var m2=mBy(e.target.value);if(m2)_moWork[jdx].parts[kdx].share=m2.monthly}
+    }
+    else if(act==="setGrpShare"){var kdx2=parseInt(e.target.dataset.kdx);_moWork[jdx].parts[kdx2].share=parseInt(e.target.value)||0}
+  }
+  // Member form: live group total update
+  if(e.target.id==="f-amt-g"||(e.target.className&&e.target.className.indexOf("gc-amt")!==-1)){
+    updGrpTotal();
   }
 });
 
@@ -786,22 +887,123 @@ function openPayModal(mi,mid){
 function openMemForm(mid){
   var m=mid?mBy(mid):{name:"",monthly:50000,phone:""};if(!m)return;
   var slots=mid?mSlots(mid):[];
-  var mi='';if(mid&&slots.length){mi='<div class="fld"><div class="lbl">Assigned Months</div>';for(var i=0;i<slots.length;i++)mi+='<span class="badge bgd" style="font-size:12px;padding:5px 10px">🎯 '+slots[i].month+(slots[i].type==="group"?' 👥':'')+'</span> ';mi+='<div style="font-size:11px;color:var(--t3);margin-top:6px">📅 Months button se change karein</div></div>';}
+  var mi='';if(mid&&slots.length){mi='<div class="fld"><div class="lbl">Assigned Months</div>';for(var i=0;i<slots.length;i++)mi+='<span class="badge bgd" style="font-size:12px;padding:5px 10px">🎯 '+slots[i].month+(slots[i].type==="group"?' 👥':'')+'</span> ';mi+='<div style="font-size:11px;color:var(--t3);margin-top:6px">📅 Months button se baad mein change karein</div></div>';}
+
+  var monthOpts='';for(var k=0;k<S.length;k++)monthOpts+='<option value="'+k+'">'+S[k].month+'</option>';
+
   openM('<div class="mdl-h"><h3>'+(mid?"Edit Member":"New Member")+'</h3></div><div class="mdl-b">'+
-    '<div class="fld"><label class="lbl">Name</label><input id="f-nm" class="inp" type="text" placeholder="Naam" value="'+(m.name||"")+'"></div>'+
-    '<div class="fld"><label class="lbl">Standard Monthly (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" value="'+(m.monthly||50000)+'"><div style="font-size:11px;color:var(--t3);margin-top:5px">Yeh single-receiver months ke liye rate hai. Agar member ki committee divide hai (group), woh "Months" assign karte waqt set hoga.</div></div>'+
-    '<div class="fld"><label class="lbl">Phone</label><input id="f-ph" class="inp" type="tel" inputmode="tel" placeholder="923..." value="'+(m.phone||"")+'"></div>'+
+    '<div class="tg-row"><label class="tg"><input type="checkbox" id="grp-tog"><span class="tg-sl"></span></label><span style="font-size:13px;font-weight:600;color:var(--t2)">👥 Group (committee kayi logon mein divide hai)</span></div>'+
+    '<div class="fld"><label class="lbl">Name'+ '<span id="grp-name-hint" style="display:none;font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3)"> (pehle/main contributor ka naam)</span></label><input id="f-nm" class="inp" type="text" placeholder="Naam" value="'+(m.name||"")+'"></div>'+
+
+    // --- SINGLE MODE FIELDS ---
+    '<div id="sec-single">'+
+      '<div class="fld"><label class="lbl">Standard Monthly (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" value="'+(m.monthly||50000)+'"></div>'+
+      '<div class="fld"><label class="lbl">Phone</label><input id="f-ph" class="inp" type="tel" inputmode="tel" placeholder="923..." value="'+(m.phone||"")+'"></div>'+
+    '</div>'+
+
+    // --- GROUP MODE FIELDS (only meaningful for NEW member) ---
+    '<div id="sec-group" style="display:none">'+
+      '<div class="fld"><label class="lbl">Phone (is member ka)</label><input id="f-ph-g" class="inp" type="tel" inputmode="tel" placeholder="923..." value="'+(m.phone||"")+'"></div>'+
+      '<div class="fld"><label class="lbl">Month (kis month mein yeh group ki committee hai)</label><select id="f-grp-month" class="sel" style="margin:0">'+monthOpts+'</select></div>'+
+      '<div class="fld"><label class="lbl">Aapka Hissa (Rs.)</label><input id="f-amt-g" class="inp" type="number" inputmode="numeric" placeholder="35000" value="'+(m.monthly||35000)+'"></div>'+
+      '<div style="font-size:11px;color:var(--t3);margin-bottom:10px">Ab is group ke baaki members add karein:</div>'+
+      '<div id="grp-contrib-list"></div>'+
+      '<button class="bs" style="width:100%;margin-bottom:8px;font-size:13px" data-act="addGrpContribRow">+ Aur Member Add Karein</button>'+
+      '<div id="grp-total" style="font-size:13px;font-weight:700;color:var(--g);text-align:center;margin-bottom:6px">Group Total: Rs. 0</div>'+
+    '</div>'+
+
     mi+'</div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveMem" data-mid="'+(mid||"")+'">Save</button></div>');
+
   setTimeout(function(){var n=document.getElementById("f-nm");if(n)n.focus()},150);
+
+  // Toggle behaviour
+  var tog=document.getElementById("grp-tog");
+  tog.addEventListener("change",function(){
+    var on=this.checked;
+    document.getElementById("sec-single").style.display=on?"none":"block";
+    document.getElementById("sec-group").style.display=on?"block":"none";
+    document.getElementById("grp-name-hint").style.display=on?"inline":"none";
+    if(on)updGrpTotal();
+  });
 }
+
+function addGrpContribRow(name,amt,ph){
+  var l=document.getElementById("grp-contrib-list");if(!l)return;
+  var d=document.createElement("div");d.className="cf";
+  d.innerHTML='<div class="cf-top"><span style="font-size:12px;font-weight:700;color:var(--t2)">Member</span><button class="bi" style="color:var(--r);padding:4px 8px;font-size:11px" data-act="remGrpContribRow">✕</button></div>'+
+    '<div class="fld" style="margin-bottom:8px"><label class="lbl">Naam</label><input class="inp gc-nm" type="text" placeholder="Naam" value="'+(name||"")+'"></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div class="fld" style="margin:0"><label class="lbl">Hissa (Rs.)</label><input class="inp gc-amt" type="number" inputmode="numeric" placeholder="15000" value="'+(amt||"")+'"></div>'+
+      '<div class="fld" style="margin:0"><label class="lbl">Phone</label><input class="inp gc-ph" type="tel" inputmode="tel" placeholder="923..." value="'+(ph||"")+'"></div>'+
+    '</div>';
+  l.appendChild(d);updGrpTotal();
+}
+function updGrpTotal(){
+  var first=parseInt((document.getElementById("f-amt-g")||{}).value)||0;
+  var others=document.querySelectorAll(".gc-amt"),sum=first;
+  for(var i=0;i<others.length;i++)sum+=parseInt(others[i].value)||0;
+  var el=document.getElementById("grp-total");
+  if(el)el.textContent="Group Total: Rs. "+fmt(sum);
+}
+
 function saveMemForm(mid){
   var nm=document.getElementById("f-nm").value.trim();if(!nm){toast("⚠️ Name zaroori hai");return}
-  var amt=parseInt(document.getElementById("f-amt").value)||0;if(amt<=0){toast("⚠️ Amount chahiye");return}
-  var ph=document.getElementById("f-ph").value.trim();
-  if(mid){for(var i=0;i<M.length;i++)if(M[i].id===mid){M[i].name=nm;M[i].monthly=amt;M[i].phone=ph;break}toast("✅ Updated")}
-  else{M.push({id:gid(),name:nm,monthly:amt,phone:ph});toast("✅ Added")}
-  svAll();closeM();
+  var isGroupMode=document.getElementById("grp-tog")&&document.getElementById("grp-tog").checked;
+
+  if(!isGroupMode){
+    var amt=parseInt(document.getElementById("f-amt").value)||0;if(amt<=0){toast("⚠️ Amount chahiye");return}
+    var ph=document.getElementById("f-ph").value.trim();
+    if(mid){for(var i=0;i<M.length;i++)if(M[i].id===mid){M[i].name=nm;M[i].monthly=amt;M[i].phone=ph;break}toast("✅ Updated")}
+    else{M.push({id:gid(),name:nm,monthly:amt,phone:ph});toast("✅ Added")}
+    svAll();closeM();
+    return;
+  }
+
+  // GROUP MODE: create/identify this member, plus any new contributor members, then build a group slot
+  var phG=document.getElementById("f-ph-g").value.trim();
+  var monthIdx=parseInt(document.getElementById("f-grp-month").value);
+  var myShare=parseInt(document.getElementById("f-amt-g").value)||0;
+  if(myShare<=0){toast("⚠️ Aapka hissa likhein");return}
+  if(isNaN(monthIdx)){toast("⚠️ Month select karein");return}
+
+  // Ensure this member exists (create if new)
+  var myId=mid;
+  if(!myId){
+    myId=gid();
+    M.push({id:myId,name:nm,monthly:myShare,phone:phG});
+  } else {
+    for(var i=0;i<M.length;i++)if(M[i].id===mid){M[i].name=nm;M[i].phone=phG;break}
+  }
+
+  var parts=[{mid:myId,share:myShare}];
+
+  // Collect additional contributors — create new members for each, or reuse if name matches existing
+  var names=document.querySelectorAll(".gc-nm"),amts=document.querySelectorAll(".gc-amt"),phones=document.querySelectorAll(".gc-ph");
+  for(var i=0;i<names.length;i++){
+    var cn=names[i].value.trim(),ca=parseInt(amts[i].value)||0,cp=phones[i].value.trim();
+    if(!cn||!ca){toast("⚠️ Har member ka naam aur hissa zaroori hai");return}
+    // try to find existing member with same name (case-insensitive) to avoid duplicates
+    var existing=null;
+    for(var j=0;j<M.length;j++)if(M[j].name.toLowerCase()===cn.toLowerCase()){existing=M[j];break}
+    var cid;
+    if(existing){cid=existing.id;if(cp)existing.phone=cp;}
+    else{cid=gid();M.push({id:cid,name:cn,monthly:ca,phone:cp});}
+    parts.push({mid:cid,share:ca});
+  }
+
+  // Remove this member (and these contributors) from any OTHER slot in the same month first, then add the group slot
+  if(!S[monthIdx].slots)S[monthIdx].slots=[];
+  var allIdsInGroup=parts.map(function(p){return p.mid});
+  S[monthIdx].slots=S[monthIdx].slots.filter(function(sl){
+    if(sl.type==="single")return allIdsInGroup.indexOf(sl.mid)===-1;
+    sl.parts=(sl.parts||[]).filter(function(p){return allIdsInGroup.indexOf(p.mid)===-1});
+    return sl.parts.length>0;
+  });
+  S[monthIdx].slots.push({type:"group",parts:parts});
+
+  svAll();closeM();toast("✅ Group created — "+parts.length+" members");
 }
+
 function confirmDel(mid){var m=mBy(mid);if(!m)return;openM('<div class="mdl-h"><h3>Delete?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+m.name+'</strong> delete karein? Schedule se bhi hat jayega.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doDel" data-mid="'+mid+'">Delete</button></div>')}
 
 // ============================
@@ -876,19 +1078,33 @@ function saveAssign(mid){
 // MONTH EDIT (simple receiver assignment from Timeline side, kept for quick single-receiver setup)
 // ============================
 function openMoEdit(idx){
-  var s=S[idx],slots=s.slots||[];
+  var s=S[idx];
+  _moWork=JSON.parse(JSON.stringify(s.slots||[]));
+  openM('<div class="mdl-h"><h3>'+s.month+'</h3><div class="mdl-d">Is month ke saare receivers yahan dikhte hain. Group mein members add/remove kar sakte hain.</div></div><div class="mdl-b"><div id="mo-list"></div><div style="display:flex;gap:8px;margin-top:10px"><button class="bs" style="flex:1;font-size:12px" data-act="addSingleSlot" data-idx="'+idx+'">+ Single Receiver</button><button class="bs" style="flex:1;font-size:12px" data-act="addGroupSlot" data-idx="'+idx+'">+ New Group</button></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveMoSlots" data-idx="'+idx+'">Save</button></div>');
+  _moRender(idx);
+}
+
+// Re-render the slot editor list from current in-memory edit state (kept in a temp working copy)
+function _moInit(idx){if(!_moWork)_moWork=JSON.parse(JSON.stringify(S[idx].slots||[]))}
+function _moRender(idx){
+  _moInit(idx);
   var rh='';
-  for(var j=0;j<slots.length;j++){
-    var sl=slots[j];
+  for(var j=0;j<_moWork.length;j++){
+    var sl=_moWork[j];
     if(sl.type==="single"){
-      rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts(sl.mid)+'</select><span style="font-size:11px;color:var(--t3);padding:0 6px">full</span><button class="bi" style="color:var(--r)" data-act="remSlotRow" data-jdx="'+j+'" data-idx="'+idx+'">✕</button></div>';
+      rh+='<div class="cf"><div class="cf-top"><span style="font-size:12px;font-weight:700;color:var(--t2)">Single Receiver (Full Turn)</span><button class="bi" style="color:var(--r);padding:4px 8px;font-size:11px" data-act="remMoSlot" data-jdx="'+j+'" data-idx="'+idx+'">✕ Remove</button></div><select class="sel" data-act-change="setSingle" data-jdx="'+j+'" style="margin:0">'+mOpts(sl.mid)+'</select></div>';
     } else {
+      var partsHtml='';
       for(var k=0;k<(sl.parts||[]).length;k++){
-        rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts(sl.parts[k].mid)+'</select><input class="inp" type="number" inputmode="numeric" value="'+sl.parts[k].share+'" style="max-width:90px"><span style="font-size:9px;color:var(--t3)">grp</span><button class="bi" style="color:var(--r)" data-act="remSlotRow" data-jdx="'+j+'" data-idx="'+idx+'">✕</button></div>';
+        partsHtml+='<div class="rec-r"><select class="sel" data-act-change="setGrpMid" data-jdx="'+j+'" data-kdx="'+k+'" style="flex:1;margin:0">'+mOpts(sl.parts[k].mid)+'</select><input class="inp" type="number" inputmode="numeric" value="'+sl.parts[k].share+'" placeholder="Share" data-act-change="setGrpShare" data-jdx="'+j+'" data-kdx="'+k+'" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remGrpPart" data-jdx="'+j+'" data-kdx="'+k+'" data-idx="'+idx+'">✕</button></div>';
       }
+      var grpTotal=(sl.parts||[]).reduce(function(s,p){return s+(+p.share||0)},0);
+      rh+='<div class="cf"><div class="cf-top"><span style="font-size:12px;font-weight:700;color:var(--t2)">👥 Group / Shared Turn <span style="color:var(--g)">(Rs. '+fmt(grpTotal)+')</span></span><button class="bi" style="color:var(--r);padding:4px 8px;font-size:11px" data-act="remMoSlot" data-jdx="'+j+'" data-idx="'+idx+'">✕ Remove Group</button></div><div>'+partsHtml+'</div><button class="bi" style="width:100%;font-size:12px;margin-top:6px" data-act="addGrpPart" data-jdx="'+j+'" data-idx="'+idx+'">+ Add Member to this Group</button></div>';
     }
   }
-  openM('<div class="mdl-h"><h3>'+s.month+'</h3><div class="mdl-d">Quick edit — bara changes ke liye Members tab se "📅 Months" use karein</div></div><div class="mdl-b"><div id="rec-list">'+rh+'</div><div style="font-size:11px;color:var(--t3);margin-top:8px">Naye members add/remove karne ke liye unke Member card se "📅 Months" button use karein — wahan group/single dono set ho sakta hai.</div></div><div class="mdl-f"><button class="bs" style="width:100%" data-act="closeM">Close</button></div>');
+  if(!rh)rh='<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px">Koi receiver assign nahi. Neeche se add karein.</div>';
+  var list=document.getElementById("mo-list");
+  if(list)list.innerHTML=rh;
 }
 
 function openNote(idx){var s=S[idx],c=NOTES[idx]||"";openM('<div class="mdl-h"><h3>📝 '+s.month+'</h3></div><div class="mdl-b"><div class="fld"><textarea id="note-ta" class="ta" placeholder="Note likhein...">'+c+'</textarea></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveNote" data-idx="'+idx+'">Save</button></div>')}
@@ -935,6 +1151,7 @@ function openSet(){
       '<div class="sr" data-act="export"><div class="sr-i">📤</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Backup</div><div style="font-size:11px;color:var(--t3)">JSON download</div></div></div>'+
       '<div class="sr" data-act="import"><div class="sr-i">📥</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Restore</div><div style="font-size:11px;color:var(--t3)">Backup se wapas</div></div></div>'+
       '<div class="sr" data-act="sync"><div class="sr-i">🔄</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Sync</div><div style="font-size:11px;color:var(--t3)">Firebase se pull</div></div></div>'+
+      '<div class="sr" data-act="recoverSnapshot"><div class="sr-i">🛟</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Emergency Recovery</div><div style="font-size:11px;color:var(--t3)">'+(getSnapshotInfo()||'Koi snapshot nahi mila')+'</div></div></div>'+
     '</div>'+
     '<div style="border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);margin-top:14px">'+
       '<div class="sr" data-act="editBank"><div class="sr-i">🏦</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Bank Details</div><div style="font-size:11px;color:var(--t3)">'+(bd.bank||'Add karein')+'</div></div></div>'+
@@ -962,6 +1179,27 @@ function openTpl(){
 }
 function saveTpl(){if(!SET.templates)SET.templates={};SET.templates.reminder=document.getElementById("tpl-rem").value;SET.templates.partial=document.getElementById("tpl-partial").value;SET.templates.mubarak=document.getElementById("tpl-mub").value;sv();closeM();toast("✅ Templates saved")}
 
+function getSnapshotInfo(){
+  try{
+    var snap=JSON.parse(localStorage.getItem("cm2_safety_snapshot")||"null");
+    if(!snap)return null;
+    return snap.members.length+' members • saved '+new Date(snap.savedAt).toLocaleString();
+  }catch(e){return null}
+}
+function doRecoverSnapshot(){
+  try{
+    var snap=JSON.parse(localStorage.getItem("cm2_safety_snapshot")||"null");
+    if(!snap){toast("⚠️ Koi snapshot nahi mila");return}
+    openM('<div class="mdl-h"><h3>🛟 Recover Snapshot?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6">Last good snapshot: <strong>'+snap.members.length+' members</strong><br>Saved: '+new Date(snap.savedAt).toLocaleString()+'<br><br>Current data is replace ho jayega is snapshot se.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="doApplySnapshot">Recover</button></div>');
+  }catch(e){toast("⚠️ Error reading snapshot")}
+}
+function doApplySnapshot(){
+  try{
+    var snap=JSON.parse(localStorage.getItem("cm2_safety_snapshot")||"null");
+    if(!snap){toast("⚠️ Snapshot not found");return}
+    applyD(snap);svAll();closeM();toast("✅ Recovered from snapshot");
+  }catch(e){toast("⚠️ Recovery failed")}
+}
 function doExport(){var d=allD();d.exportedAt=new Date().toISOString();var bl=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});var u=URL.createObjectURL(bl);var a=document.createElement("a");a.href=u;a.download="committee-backup-"+tdy()+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast("✅ Downloaded")}
 document.getElementById("fi").addEventListener("change",function(e){
   var f=e.target.files[0];if(!f)return;var r=new FileReader();
