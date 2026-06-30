@@ -599,9 +599,38 @@ R.timeline=function(){
 
 R.members=function(){
   var el=document.getElementById("pg-members"),P$=totalPool();
-  var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+M.length+' members • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>';
+
+  // A member is "group-only" if they ONLY appear as a part inside other people's group slots,
+  // and have no single-receiver slot of their own. These don't get their own card.
+  function isPureGroupContrib(mid){
+    var mySlots=mSlots(mid);
+    if(!mySlots.length)return false; // no slots → show them (unassigned)
+    for(var i=0;i<mySlots.length;i++)if(mySlots[i].type==="single")return false;
+    return true; // all slots are group-type, no independent single turn
+  }
+
+  // Build set of group-contrib IDs so we can show them inside the "owner" card
+  var groupContribIds={};
+  for(var i=0;i<S.length;i++){
+    var slots=S[i].slots||[];
+    for(var j=0;j<slots.length;j++){
+      if(slots[j].type==="group"){
+        for(var k=0;k<(slots[j].parts||[]).length;k++){
+          var pid=slots[j].parts[k].mid;
+          if(isPureGroupContrib(pid))groupContribIds[pid]=true;
+        }
+      }
+    }
+  }
+
+  var shown=0;
+  var h='';
   for(var i=0;i<M.length;i++){
-    var m=M[i],slots=mSlots(m.id),total=mMonthly(m.id);
+    var m=M[i];
+    // Skip pure group-only contributors — they appear inside their group's card
+    if(groupContribIds[m.id])continue;
+    shown++;
+    var slots=mSlots(m.id),total=mMonthly(m.id);
     var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
 
     var monthsHtml='';
@@ -620,7 +649,8 @@ R.members=function(){
             monthsHtml+='<div style="margin-top:6px;border-top:1px solid #e9d8fd;padding-top:6px">';
             for(var p=0;p<partners.length;p++){
               var pm=mBy(partners[p].mid);
-              monthsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:3px 0"><div class="av sm">'+ini(partners[p].name)+'</div><div style="flex:1;font-size:11px;color:var(--t2)">'+partners[p].name+' — Rs. '+fmt(partners[p].share)+'/mo'+(pm&&pm.phone?'':' <span style="color:var(--o)">(no phone)</span>')+'</div>'+(pm&&pm.phone?'<button class="bi" style="padding:4px 8px;font-size:10px" data-act="intro1" data-mid="'+partners[p].mid+'">'+(INTRO[partners[p].mid]?'🔄':'📣')+'</button>':'')+'</div>';
+              var pIntro=INTRO[partners[p].mid]?'🔄':'📣';
+              monthsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'+(p<partners.length-1?'border-bottom:1px solid #ede9ff':'')+'"><div class="av sm">'+ini(partners[p].name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+partners[p].name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(partners[p].share)+'/mo'+(pm&&pm.phone?' • '+pm.phone:' • <span style="color:var(--o)">No phone</span>')+'</div></div>'+(pm&&pm.phone?'<button class="bi" style="padding:4px 8px;font-size:10px" data-act="intro1" data-mid="'+partners[p].mid+'">'+pIntro+'</button>':'')+'</div>';
             }
             monthsHtml+='</div>';
           }
@@ -632,7 +662,8 @@ R.members=function(){
 
     h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo total • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:3px">'+is+'</div></div></div>'+monthsHtml+'<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button><button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄 Resend':'📣 Intro')+'</button><button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button></div></div>';
   }
-  el.innerHTML=h;
+
+  el.innerHTML='<div class="shdr"><div><h3>👥 Members</h3><small>'+shown+' cards • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>'+h;
 };
 
 R.payments=function(){
