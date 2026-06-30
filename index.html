@@ -168,33 +168,36 @@ body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;color:var(--t1);m
 var FB='https://committee-app-123-default-rtdb.firebaseio.com/committee';
 
 var DEF_MEM=[
-  {id:"m1",name:"AB",monthly:50000,phone:"",contributors:[]},
-  {id:"m2",name:"AD",monthly:50000,phone:"",contributors:[]},
-  {id:"m3",name:"Mamo Amir",monthly:50000,phone:"",contributors:[]},
-  {id:"m4",name:"Bhai Amanullah",monthly:50000,phone:"",contributors:[]},
-  {id:"m5",name:"Mamo Naveed",monthly:50000,phone:"",contributors:[]},
-  {id:"m6",name:"Miss Mamona",monthly:50000,phone:"",contributors:[]},
-  {id:"m7",name:"Mama Amjad",monthly:50000,phone:"",contributors:[]},
-  {id:"m8",name:"Miss Iffat",monthly:50000,phone:"",contributors:[]},
-  {id:"m9",name:"Miss Abida",monthly:50000,phone:"",contributors:[]},
-  {id:"m10",name:"Miss Nazish",monthly:50000,phone:"",contributors:[]},
-  {id:"m11",name:"Mis Usma + Iqra",monthly:50000,phone:"",contributors:[]},
-  {id:"m12",name:"Sidi Farah",monthly:50000,phone:"",contributors:[]}
+  {id:"m1",name:"AB",monthly:50000,phone:""},
+  {id:"m2",name:"AD",monthly:50000,phone:""},
+  {id:"m3",name:"Mamo Amir",monthly:50000,phone:""},
+  {id:"m4",name:"Bhai Amanullah",monthly:50000,phone:""},
+  {id:"m5",name:"Mamo Naveed",monthly:50000,phone:""},
+  {id:"m6",name:"Miss Mamona",monthly:50000,phone:""},
+  {id:"m7",name:"Mama Amjad",monthly:50000,phone:""},
+  {id:"m8",name:"Miss Iffat",monthly:50000,phone:""},
+  {id:"m9",name:"Miss Abida",monthly:50000,phone:""},
+  {id:"m10",name:"Miss Nazish",monthly:50000,phone:""},
+  {id:"m11",name:"Mis Usma + Iqra",monthly:50000,phone:""},
+  {id:"m12",name:"Sidi Farah",monthly:50000,phone:""}
 ];
 
+// Schedule: each month has "slots". A slot is either:
+//   {type:"single", mid: "m1"}                                  -- one member takes the whole turn
+//   {type:"group",  parts:[{mid:"m1",share:35000},{mid:"m9",share:15000}]}  -- shared turn
 var DEF_SCH=[
-  {month:"July 2026",receivers:[{mid:"m1",amount:50000}]},
-  {month:"Aug 2026",receivers:[{mid:"m2",amount:50000}]},
-  {month:"Sep 2026",receivers:[{mid:"m3",amount:50000}]},
-  {month:"Oct 2026",receivers:[{mid:"m4",amount:50000}]},
-  {month:"Nov 2026",receivers:[{mid:"m5",amount:50000}]},
-  {month:"Dec 2026",receivers:[{mid:"m6",amount:50000}]},
-  {month:"Jan 2027",receivers:[{mid:"m7",amount:50000}]},
-  {month:"Feb 2027",receivers:[{mid:"m8",amount:50000}]},
-  {month:"Mar 2027",receivers:[{mid:"m9",amount:50000}]},
-  {month:"Apr 2027",receivers:[{mid:"m10",amount:50000}]},
-  {month:"May 2027",receivers:[{mid:"m11",amount:50000}]},
-  {month:"Jun 2027",receivers:[{mid:"m12",amount:50000}]}
+  {month:"July 2026",  slots:[{type:"single",mid:"m1"}]},
+  {month:"Aug 2026",   slots:[{type:"single",mid:"m2"}]},
+  {month:"Sep 2026",   slots:[{type:"single",mid:"m3"}]},
+  {month:"Oct 2026",   slots:[{type:"single",mid:"m4"}]},
+  {month:"Nov 2026",   slots:[{type:"single",mid:"m5"}]},
+  {month:"Dec 2026",   slots:[{type:"single",mid:"m6"}]},
+  {month:"Jan 2027",   slots:[{type:"single",mid:"m7"}]},
+  {month:"Feb 2027",   slots:[{type:"single",mid:"m8"}]},
+  {month:"Mar 2027",   slots:[{type:"single",mid:"m9"}]},
+  {month:"Apr 2027",   slots:[{type:"single",mid:"m10"}]},
+  {month:"May 2027",   slots:[{type:"single",mid:"m11"}]},
+  {month:"Jun 2027",   slots:[{type:"single",mid:"m12"}]}
 ];
 
 var MFULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -204,14 +207,14 @@ var MFULL=["January","February","March","April","May","June","July","August","Se
 // ============================
 function ld(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):JSON.parse(JSON.stringify(d))}catch(e){return JSON.parse(JSON.stringify(d))}}
 
-var M=ld("cm_mem",DEF_MEM);       // members
-var S=ld("cm_sch",DEF_SCH);       // schedule
-var P=ld("cm_pay",{});             // payments {mi-mid: {paid,date}}
-var REM=ld("cm_rem",{});           // reminders {mi-mid: {count,lastDate}}
-var INTRO=ld("cm_intro",{});       // intro sent flags {mid: true}
-var PO=ld("cm_po",{});             // payouts {mi: {confirmed,date}}
-var NOTES=ld("cm_notes",{});       // notes {mi: "text"}
-var SET=ld("cm_set",{startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}});
+var M=ld("cm2_mem",DEF_MEM);        // members: [{id,name,monthly,phone}]  -- monthly is the BASE rate used as fallback only
+var S=ld("cm2_sch",DEF_SCH);        // schedule: [{month, slots:[...]}]
+var PAY=ld("cm2_pay",{});           // payments: key = mi+"-"+mid -> {history:[{amount,date}], totalPaid, status}
+var REM=ld("cm2_rem",{});           // reminders: key = mi+"-"+mid -> {count, lastDate}
+var INTRO=ld("cm2_intro",{});       // {mid:true}
+var PAYOUT=ld("cm2_payout",{});     // payouts: key = mi+"-"+mid -> {sent:true,date}  (per-person, even within a group slot)
+var NOTES=ld("cm2_notes",{});       // {mi: "text"}
+var SET=ld("cm2_set",{startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}});
 
 var selMo=curMo();
 var _st=null,_rem=false;
@@ -233,7 +236,6 @@ function curMo(){
   var diff=(y-sY)*12+(m-sM);
   return Math.max(0,Math.min(diff,S.length-1));
 }
-
 function dlDay(){return SET.deadlineDay||5}
 function isLate(){return new Date().getDate()>dlDay()}
 function dlInfo(){
@@ -245,55 +247,112 @@ function dlInfo(){
 }
 
 // ============================
-// MEMBER HELPERS (all from M array)
+// MEMBER HELPERS
 // ============================
 function mBy(id){for(var i=0;i<M.length;i++)if(M[i].id===id)return M[i];return null}
 function mNm(id){var m=mBy(id);return m?m.name:"?"}
-function isGrp(m){return m&&m.contributors&&m.contributors.length>0}
 
-// Monthly amount — stored directly on member, NOT derived from schedule
-function mAmt(m){
-  if(!m)return 0;
-  if(isGrp(m))return(m.contributors||[]).reduce(function(s,c){return s+(+c.amount||0)},0);
-  return +m.monthly||0;
-}
-
-// Total monthly pool = sum of all members' monthly amounts
-function pool(){return M.reduce(function(s,m){return s+mAmt(m)},0)}
-
-// Which months is member assigned to in schedule
-function mMons(id){
-  var r=[];if(!id)return r;
+// Find every slot (single or group-part) a member appears in, across the whole schedule.
+// Returns: [{idx, month, type:"single"|"group", share, slotIdx, groupParts}]
+function mSlots(mid){
+  var out=[];
   for(var i=0;i<S.length;i++){
-    if(!S[i]||!S[i].receivers)continue;
-    for(var j=0;j<S[i].receivers.length;j++)
-      if(S[i].receivers[j]&&S[i].receivers[j].mid===id)
-        r.push({idx:i,month:S[i].month||"",amount:S[i].receivers[j].amount||0});
+    var slots=S[i].slots||[];
+    for(var j=0;j<slots.length;j++){
+      var sl=slots[j];
+      if(sl.type==="single"&&sl.mid===mid){
+        out.push({idx:i,month:S[i].month,type:"single",share:totalPool(),slotIdx:j});
+      } else if(sl.type==="group"){
+        for(var k=0;k<(sl.parts||[]).length;k++){
+          if(sl.parts[k].mid===mid){
+            var grpTotal=sl.parts.reduce(function(s,p){return s+(+p.share||0)},0);
+            var payoutShare=grpTotal>0?Math.round(sl.parts[k].share/grpTotal*totalPool()):0;
+            out.push({idx:i,month:S[i].month,type:"group",share:payoutShare,monthlyShare:sl.parts[k].share,slotIdx:j,partIdx:k,groupParts:sl.parts});
+          }
+        }
+      }
+    }
   }
-  return r;
+  return out;
 }
 
-// ============================
-// PAYMENT HELPERS
-// ============================
-function isPd(mi,mid){return!!P[mi+"-"+mid]}
-function isCPd(mi,mid,cid){return!!P[mi+"-"+mid+"-"+cid]}
-function isFullPd(mi,m){
-  if(!isGrp(m))return isPd(mi,m.id);
-  for(var i=0;i<m.contributors.length;i++)if(!isCPd(mi,m.id,m.contributors[i].id))return false;
-  return true;
+// Member's TOTAL monthly contribution = sum of their monthly commitment across all slots they're in.
+// For "single" slots, their monthly contribution = pool()/1 ... but actually for single slots the
+// member pays the STANDARD per-member rate (their own monthly), not the pool.
+// For "group" slots, their monthly contribution = their declared share in that group.
+function mMonthly(mid){
+  var m=mBy(mid);if(!m)return 0;
+  var total=0,foundAny=false;
+  for(var i=0;i<S.length;i++){
+    var slots=S[i].slots||[];
+    for(var j=0;j<slots.length;j++){
+      var sl=slots[j];
+      if(sl.type==="single"&&sl.mid===mid){total+=(+m.monthly||0);foundAny=true;}
+      else if(sl.type==="group"){
+        for(var k=0;k<(sl.parts||[]).length;k++){
+          if(sl.parts[k].mid===mid){total+=(+sl.parts[k].share||0);foundAny=true;}
+        }
+      }
+    }
+  }
+  return foundAny?total:(+m.monthly||0);
 }
-function pAmt(mi,m){
-  if(!isGrp(m))return isPd(mi,m.id)?mAmt(m):0;
-  var s=0;for(var i=0;i<m.contributors.length;i++)if(isCPd(mi,m.id,m.contributors[i].id))s+=(+m.contributors[i].amount||0);return s;
+
+// Total monthly pool = sum of every member's monthly contribution (deduplicated correctly,
+// since each member only appears once in mMonthly regardless of how many slots they're in).
+function totalPool(){
+  var seen={},sum=0;
+  for(var i=0;i<M.length;i++){
+    if(seen[M[i].id])continue;seen[M[i].id]=true;
+    sum+=mMonthly(M[i].id);
+  }
+  return sum;
 }
-function pdCt(mi){return M.filter(function(m){return isFullPd(mi,m)}).length}
-function pdTotal(mi){return M.reduce(function(s,m){return s+pAmt(mi,m)},0)}
-function unpaid(mi){return M.filter(function(m){return!isFullPd(mi,m)})}
+
 function mOpts(sel){var h='<option value="">-- Select --</option>';for(var i=0;i<M.length;i++)h+='<option value="'+M[i].id+'"'+(M[i].id===sel?' selected':'')+'>'+M[i].name+'</option>';return h}
 
 // ============================
-// BANK DETAILS
+// PAYMENT HELPERS (Feature 1: partial payments)
+// ============================
+function payKey(mi,mid){return mi+"-"+mid}
+function getPay(mi,mid){
+  var p=PAY[payKey(mi,mid)];
+  if(!p)return{history:[],totalPaid:0,status:"unpaid"};
+  return p;
+}
+function payDue(mi,mid){return mMonthly(mid)}
+function payStatus(mi,mid){
+  var p=getPay(mi,mid),due=payDue(mi,mid);
+  if(p.totalPaid<=0)return"unpaid";
+  if(p.totalPaid>=due)return"paid";
+  return"partial";
+}
+function addPayment(mi,mid,amount,date){
+  var k=payKey(mi,mid);
+  if(!PAY[k])PAY[k]={history:[],totalPaid:0,status:"unpaid"};
+  PAY[k].history.push({amount:amount,date:date||tdy()});
+  PAY[k].totalPaid=PAY[k].history.reduce(function(s,h){return s+(+h.amount||0)},0);
+  var due=payDue(mi,mid);
+  PAY[k].status=PAY[k].totalPaid>=due?"paid":(PAY[k].totalPaid>0?"partial":"unpaid");
+  if(PAY[k].status==="paid"&&!PAY[k].completedDate)PAY[k].completedDate=date||tdy();
+  if(PAY[k].status!=="paid")PAY[k].completedDate=null;
+}
+function removeLastPayment(mi,mid){
+  var k=payKey(mi,mid);if(!PAY[k]||!PAY[k].history.length)return;
+  PAY[k].history.pop();
+  PAY[k].totalPaid=PAY[k].history.reduce(function(s,h){return s+(+h.amount||0)},0);
+  var due=payDue(mi,mid);
+  PAY[k].status=PAY[k].totalPaid>=due?"paid":(PAY[k].totalPaid>0?"partial":"unpaid");
+  if(PAY[k].status!=="paid")PAY[k].completedDate=null;
+}
+function clearPayment(mi,mid){delete PAY[payKey(mi,mid)]}
+
+function pdCt(mi){return M.filter(function(m){return payStatus(mi,m.id)==="paid"}).length}
+function pdTotal(mi){return M.reduce(function(s,m){return s+getPay(mi,m.id).totalPaid},0)}
+function unpaidOrPartial(mi){return M.filter(function(m){return payStatus(mi,m.id)!=="paid"})}
+
+// ============================
+// BANK / MESSAGES
 // ============================
 function bankStr(){
   var b=SET.bankDetails||{};
@@ -301,28 +360,38 @@ function bankStr(){
   var s="";if(b.bank)s+="Bank: "+b.bank+"\n";if(b.account)s+="Account: "+b.account+"\n";if(b.name)s+="Name: "+b.name;
   return s.trim();
 }
+function defTpl(type){
+  if(type==="reminder")return"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount Due: Rs. {amount}\n\n{deadline} tak jama karwa dein.\n\n🏦 Payment Details:\n{bank_details}\n\nShukriya! 🙏";
+  if(type==="partial")return"Assalam o Alaikum {name}!\n\nShukriya, aapne Rs. {paid} jama karwa diye hain.\nBaqi Rs. {remaining} {deadline} tak jama karwa dein.\n\n🏦 Payment Details:\n{bank_details}\n\nShukriya! 🙏";
+  return"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nAapka Payout: Rs. {payout}\n\nJald transfer ho jayegi. Shukriya!";
+}
+function getTpl(type){return(SET.templates&&SET.templates[type])||defTpl(type)}
+function fillTpl(tpl,vars){
+  return tpl.replace(/{name}/g,vars.name||"").replace(/{month}/g,vars.month||"")
+    .replace(/{amount}/g,fmt(vars.amount||0)).replace(/{deadline}/g,dlDay()+" tareekh")
+    .replace(/{bank_details}/g,bankStr()).replace(/{payout}/g,fmt(vars.payout||0))
+    .replace(/{paid}/g,fmt(vars.paid||0)).replace(/{remaining}/g,fmt(vars.remaining||0));
+}
+function remMsg(name,month,due,alreadyPaid){
+  if(alreadyPaid>0){
+    return fillTpl(getTpl("partial"),{name:name,month:month,paid:alreadyPaid,remaining:due-alreadyPaid});
+  }
+  return fillTpl(getTpl("reminder"),{name:name,month:month,amount:due});
+}
+function mubMsg(name,month,payoutAmt){return fillTpl(getTpl("mubarak"),{name:name,month:month,payout:payoutAmt})}
 
-// ============================
-// MESSAGES
-// ============================
-function remMsg(name,month,amt){return fillTpl(getTpl("reminder"),{name:name,month:month,amount:amt})}
-function mubMsg(name,month){return fillTpl(getTpl("mubarak"),{name:name,month:month,payout:pool()})}
 function introMsg(mid){
   var m=mBy(mid);if(!m)return"";
-  var mons=mMons(mid),p=pool(),mo=mAmt(m);
-  var msg="Assalam o Alaikum "+m.name+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n💰 Monthly Contribution: Rs. "+fmt(mo)+"\n";
-  if(mons.length===1){msg+="🎯 Committee Month: "+mons[0].month+"\n💎 Payout: Rs. "+fmt(p)+"\n";}
-  else if(mons.length>1){msg+="🎯 Aapki "+mons.length+" Committees:\n";for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(p)+"\n";msg+="💎 Total Payout: Rs. "+fmt(p*mons.length)+"\n";}
-  msg+="\n🏦 Payment Details:\n"+bankStr()+"\n\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
-  return msg;
-}
-function cIntroMsg(cName,cAmt,grpMid){
-  var mons=mMons(grpMid),m=mBy(grpMid),p=pool();
-  var grpTot=m?mAmt(m):cAmt;
-  var share=grpTot>0?Math.round(cAmt/grpTot*p):0;
-  var msg="Assalam o Alaikum "+cName+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n💰 Monthly Contribution: Rs. "+fmt(cAmt)+"\n";
-  if(mons.length===1){msg+="🎯 Committee Month: "+mons[0].month+"\n💎 Aapka Payout: Rs. "+fmt(share)+"\n";}
-  else if(mons.length>1){msg+="🎯 Aapki Committees:\n";for(var i=0;i<mons.length;i++)msg+="  "+(i+1)+". "+mons[i].month+" → Rs. "+fmt(share)+"\n";msg+="💎 Total Payout: Rs. "+fmt(share*mons.length)+"\n";}
+  var slots=mSlots(mid),total=mMonthly(mid);
+  var msg="Assalam o Alaikum "+m.name+"!\n\nCommittee shuru ho rahi hai. Aapki details:\n\n💰 Monthly Contribution: Rs. "+fmt(total)+"\n";
+  if(slots.length===1){
+    msg+="🎯 Committee Month: "+slots[0].month+"\n💎 Payout: Rs. "+fmt(slots[0].share)+"\n";
+  } else if(slots.length>1){
+    msg+="🎯 Aapki "+slots.length+" Committees:\n";
+    var totalPayout=0;
+    for(var i=0;i<slots.length;i++){msg+="  "+(i+1)+". "+slots[i].month+" → Rs. "+fmt(slots[i].share)+"\n";totalPayout+=slots[i].share;}
+    msg+="💎 Total Payout: Rs. "+fmt(totalPayout)+"\n";
+  }
   msg+="\n🏦 Payment Details:\n"+bankStr()+"\n\n⚠️ Har mahine "+dlDay()+" tareekh tak jama karwa dein.\n\nShukriya! 🙏";
   return msg;
 }
@@ -332,23 +401,22 @@ function waOpen(ph,msg){var c=(ph||"").replace(/\D/g,"");if(!c){toast("⚠️ Ph
 // SAVE / SYNC
 // ============================
 function lvSave(){
-  localStorage.setItem("cm_mem",JSON.stringify(M));localStorage.setItem("cm_sch",JSON.stringify(S));
-  localStorage.setItem("cm_pay",JSON.stringify(P));localStorage.setItem("cm_rem",JSON.stringify(REM));
-  localStorage.setItem("cm_intro",JSON.stringify(INTRO));localStorage.setItem("cm_po",JSON.stringify(PO));
-  localStorage.setItem("cm_notes",JSON.stringify(NOTES));localStorage.setItem("cm_set",JSON.stringify(SET));
+  localStorage.setItem("cm2_mem",JSON.stringify(M));localStorage.setItem("cm2_sch",JSON.stringify(S));
+  localStorage.setItem("cm2_pay",JSON.stringify(PAY));localStorage.setItem("cm2_rem",JSON.stringify(REM));
+  localStorage.setItem("cm2_intro",JSON.stringify(INTRO));localStorage.setItem("cm2_payout",JSON.stringify(PAYOUT));
+  localStorage.setItem("cm2_notes",JSON.stringify(NOTES));localStorage.setItem("cm2_set",JSON.stringify(SET));
 }
-function allD(){return{members:M,schedule:S,payments:P,reminders:REM,introSent:INTRO,payouts:PO,notes:NOTES,appSettings:SET}}
+function allD(){return{members:M,schedule:S,payments:PAY,reminders:REM,introSent:INTRO,payouts:PAYOUT,notes:NOTES,appSettings:SET}}
 function applyD(d){
   if(!d||!d.members)return false;
-  M=d.members||[];S=d.schedule||[];P=d.payments||{};REM=d.reminders||{};
-  INTRO=d.introSent||{};PO=d.payouts||{};NOTES=d.notes||{};
+  M=d.members||[];S=d.schedule||[];PAY=d.payments||{};REM=d.reminders||{};
+  INTRO=d.introSent||{};PAYOUT=d.payouts||{};NOTES=d.notes||{};
   if(d.appSettings)SET=d.appSettings;
-  for(var i=0;i<M.length;i++)if(!M[i].contributors)M[i].contributors=[];
-  for(var i=0;i<S.length;i++)if(!S[i].receivers)S[i].receivers=[];
+  for(var i=0;i<S.length;i++){if(!S[i].slots)S[i].slots=[];for(var j=0;j<S[i].slots.length;j++)if(S[i].slots[j].type==="group"&&!S[i].slots[j].parts)S[i].slots[j].parts=[];}
   return true;
 }
 function sv(){lvSave();if(_rem)return;clearTimeout(_st);_st=setTimeout(fbPush,700)}
-function svAll(){sv();try{R.home();R.timeline();R.members();R.payments()}catch(e){}}
+function svAll(){sv();try{R.home();R.timeline();R.members();R.payments()}catch(e){console.error(e)}}
 
 function setSS(s,l){var d=document.getElementById("sd"),lb=document.getElementById("sl");if(d)d.className="sync-dot "+s;if(lb)lb.textContent=l||(s==="ok"?"Synced":s==="syncing"?"Syncing...":"Offline")}
 function fbPush(){setSS("syncing");fetch(FB+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(allD())}).then(function(r){setSS(r.ok?"ok":"err")}).catch(function(){setSS("err","Offline")})}
@@ -356,7 +424,7 @@ function fbPull(){return fetch(FB+'.json').then(function(r){return r.json()}).th
 function fbListen(){
   try{var es=new EventSource(FB+'.json');
     es.addEventListener('put',function(e){try{var d=JSON.parse(e.data).data;if(!d||!d.members)return;
-      if(JSON.stringify(d.payments)===JSON.stringify(P)&&JSON.stringify(d.members)===JSON.stringify(M))return;
+      if(JSON.stringify(d.payments)===JSON.stringify(PAY)&&JSON.stringify(d.members)===JSON.stringify(M))return;
       _rem=true;applyD(d);lvSave();setSS("ok");
       var a=document.querySelector('.pg.on');if(a){var t=a.id.replace('pg-','');if(R[t])R[t]()}
       toast("🔄 Synced");_rem=false;
@@ -390,11 +458,15 @@ function updHdr(){var s=document.querySelector('.hdr small');if(s&&S.length)s.te
 var R={};
 
 R.home=function(){
-  var el=document.getElementById("pg-home"),ci=curMo(),mi=selMo,P$=pool(),N=S.length;
+  var el=document.getElementById("pg-home"),ci=curMo(),mi=selMo,P$=totalPool(),N=S.length;
   if(!N){el.innerHTML='<div class="card done"><div class="big">🎊</div><p>No schedule</p></div>';return}
   if(mi>=N)mi=selMo=N-1;if(mi<0)mi=selMo=0;
-  var s=S[mi],rec=s.receivers||[],rn=rec.map(function(r){return mNm(r.mid)}).join(" + ");
-  var pc=pdCt(mi),pa=pdTotal(mi),up=unpaid(mi);
+  var s=S[mi],slots=s.slots||[];
+  var rn=slots.map(function(sl){
+    if(sl.type==="single")return mNm(sl.mid);
+    return(sl.parts||[]).map(function(p){return mNm(p.mid)}).join("+");
+  }).join(" , ");
+  var pc=pdCt(mi),pa=pdTotal(mi),up=unpaidOrPartial(mi);
   var isCur=mi===ci,isPast=mi<ci;
   var totCol=0,totExp=P$*N;
   for(var i=0;i<N;i++)totCol+=pdTotal(i);
@@ -403,7 +475,6 @@ R.home=function(){
   var dl=dlInfo();
 
   var h='';
-  // Overall progress
   h+='<div class="card" style="background:linear-gradient(145deg,var(--g),var(--g2));color:#fff;padding:18px;border:none;overflow:hidden;position:relative">';
   h+='<div style="position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.07)"></div>';
   h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">';
@@ -413,14 +484,12 @@ R.home=function(){
   h+='<div style="background:rgba(255,255,255,.13);padding:7px 11px;border-radius:10px;text-align:center"><div style="font-size:17px;font-weight:700">'+oPct+'%</div><div style="font-size:9px;opacity:.8;text-transform:uppercase">Done</div></div>';
   h+='</div><div style="height:5px;background:rgba(255,255,255,.2);border-radius:99px;margin-top:10px;overflow:hidden"><div style="height:100%;width:'+oPct+'%;background:rgba(255,255,255,.85);border-radius:99px"></div></div></div>';
 
-  // Quick stats
   h+='<div class="g3">';
   h+='<div class="card" style="padding:10px;text-align:center;margin:0"><div class="sl">Pool/Mo</div><div style="font-size:15px;font-weight:700;color:var(--g);margin-top:3px">'+fK(P$)+'</div></div>';
   h+='<div class="card" style="padding:10px;text-align:center;margin:0"><div class="sl">Months Left</div><div style="font-size:15px;font-weight:700;margin-top:3px">'+mLeft+'</div></div>';
   h+='<div class="card" style="padding:10px;text-align:center;margin:0"><div class="sl">Members</div><div style="font-size:15px;font-weight:700;margin-top:3px">'+M.length+'</div></div>';
   h+='</div>';
 
-  // Month navigator
   var tag=isCur?"⭐ Current":isPast?"✓ Done":"🔜 Upcoming";
   var tagC=isCur?"var(--gd)":isPast?"var(--g)":"var(--t3)";
   h+='<div class="card" style="border-left:3px solid '+(isCur?'var(--gd)':isPast?'var(--g)':'var(--ln)')+';background:'+(isCur?'linear-gradient(to right,#fdf6e8,#fff 70%)':'#fff')+'">';
@@ -430,46 +499,27 @@ R.home=function(){
   h+='<button class="bi" data-act="nextMo" style="padding:5px 12px;font-size:16px;'+(mi===N-1?'opacity:.3;pointer-events:none':'')+'">›</button></div>';
   h+='<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:12px;color:var(--t2)">🎯 '+rn+'</div>';
   h+='<div style="font-size:14px;font-weight:700;color:'+(pc===M.length?'var(--g)':'var(--o)')+'">'+pc+'/'+M.length+' paid</div></div>';
-  // Status
-  if(PO[mi]&&PO[mi].confirmed){h+='<div style="margin-top:8px;font-size:12px;color:var(--g);font-weight:600">💸 Transferred '+fD(PO[mi].date)+'</div>';}
-  else if(pc===M.length){
-    h+='<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--g);font-weight:600">✅ Sab ne pay kar diya!</span><button class="bwa" style="font-size:11px;padding:6px 10px" data-act="payout" data-mi="'+mi+'">💸 Transfer</button></div>';
-    h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f0e8cc;display:flex;gap:6px;flex-wrap:wrap">';
-    for(var i=0;i<rec.length;i++){var nm=mNm(rec[i].mid);h+='<button class="bwa" style="font-size:11px;padding:6px 10px" data-act="mubarak" data-mid="'+rec[i].mid+'" data-mi="'+mi+'">🎉 '+nm+'</button>';}
-    h+='</div>';
+  if(pc===M.length){
+    h+='<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--g);font-weight:600">✅ Sab ne pay kar diya!</span></div>';
   } else if(isCur){
     h+='<div style="margin-top:8px;padding:7px 10px;background:'+(dl.c==="ok"?'var(--gl)':dl.c==="warn"?'var(--ol)':'var(--rl)')+';border-radius:8px;font-size:12px;font-weight:600;color:'+(dl.c==="ok"?'var(--g)':dl.c==="warn"?'var(--o)':'var(--r)')+'">'+dl.i+' '+dl.t+'</div>';
   }
   h+='</div>';
 
-  // Pending
+  // Pending/partial list
   if(up.length>0&&(isCur||isPast)){
-    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--o)">⏳ Pending ('+up.length+')</div><button class="bwa" style="padding:6px 12px;font-size:11px" data-act="remAll" data-mi="'+mi+'">📢 Remind All</button></div>';
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--o)">⏳ Pending / Partial ('+up.length+')</div><button class="bwa" style="padding:6px 12px;font-size:11px" data-act="remAll" data-mi="'+mi+'">📢 Remind All</button></div>';
     for(var i=0;i<up.length;i++){
-      var m=up[i],g=isGrp(m),rm=REM[mi+"-"+m.id]||{count:0};
+      var m=up[i],pst=payStatus(mi,m.id),due=payDue(mi,m.id),pinf=getPay(mi,m.id);
+      var rm=REM[payKey(mi,m.id)]||{count:0};
       var lt=isCur&&isLate()?'<span class="badge br" style="font-size:9px">Late</span>':'';
       var rc=rm.count>0?'<span class="badge bb" style="font-size:9px">📱'+rm.count+'x</span>':'';
-      if(!g){
-        h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(mAmt(m))+'  '+lt+rc+'</div></div><button class="chk" data-act="qpay" data-mi="'+mi+'" data-mid="'+m.id+'">✓</button><button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div>';
-      } else {
-        // Group header
-        var gPa=pAmt(mi,m),gTo=mAmt(m),gPct=gTo?Math.round(gPa/gTo*100):0;
-        h+='<div class="row" style="flex-wrap:wrap"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+' <span class="badge bpu" style="font-size:9px">👥</span></div><div class="ra">Rs. '+fmt(gPa)+' / '+fmt(gTo)+'  '+lt+'</div><div style="width:60px;height:3px;background:#eee;border-radius:99px;margin-top:3px;overflow:hidden"><div style="height:100%;width:'+gPct+'%;background:var(--o)"></div></div></div></div>';
-        // Individual unpaid contributors
-        for(var j=0;j<m.contributors.length;j++){
-          var c=m.contributors[j];
-          if(!isCPd(mi,m.id,c.id)){
-            var cr=REM[mi+"-"+m.id+"-"+c.id]||{count:0};
-            var crc=cr.count>0?'<span class="badge bb" style="font-size:9px">📱'+cr.count+'x</span>':'';
-            h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0 6px 14px;border-bottom:1px solid #f9f7f2"><div style="width:2px;min-height:28px;background:var(--ln);flex-shrink:0;border-radius:1px"></div><div class="av sm">'+ini(c.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(c.amount)+' '+crc+'</div></div><button class="chk sm" data-act="qcpay" data-mi="'+mi+'" data-mid="'+m.id+'" data-cid="'+c.id+'">✓</button><button class="bwa" style="padding:5px 8px;font-size:10px" data-act="cRem" data-mid="'+m.id+'" data-cid="'+c.id+'" data-mi="'+mi+'">📱</button></div>';
-          }
-        }
-      }
+      var stBadge=pst==="partial"?'<span class="badge bo" style="font-size:9px">'+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':'';
+      h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(due)+'  '+stBadge+lt+rc+'</div></div><button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button><button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div>';
     }
     h+='</div>';
   }
 
-  // Intro card
   var allSent=M.every(function(m){return INTRO[m.id]});
   h+='<div class="card" style="background:var(--gdl);border-color:#e8dcc0;padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:12px;font-weight:700;color:var(--gd)">📣 Introduction</div><div style="font-size:11px;color:var(--t2);margin-top:2px">'+(allSent?'✅ Sab ko bhej diya':'Members ko details bhejein')+'</div></div>'+(allSent?'<button class="bwa" style="background:#aaa;font-size:11px;padding:6px 10px" data-act="introAll">🔄</button>':'<button class="bwa" style="background:var(--gd);font-size:11px;padding:6px 10px" data-act="introAll">Send All</button>')+'</div></div>';
 
@@ -477,61 +527,91 @@ R.home=function(){
 };
 
 R.timeline=function(){
-  var el=document.getElementById("pg-timeline"),ci=curMo(),P$=pool();
-  var h='<div class="shdr"><div><h3>📅 Timeline</h3><small>'+S.length+' months • Payout: Rs. '+fmt(P$)+'/mo</small></div><button class="sbtn" data-act="addMonth">+ Month</button></div>';
+  var el=document.getElementById("pg-timeline"),ci=curMo(),P$=totalPool();
+  var h='<div class="shdr"><div><h3>📅 Timeline</h3><small>'+S.length+' months • Pool: Rs. '+fmt(P$)+'/mo</small></div><button class="sbtn" data-act="addMonth">+ Month</button></div>';
   for(var i=0;i<S.length;i++){
     var s=S[i],cur=i===ci,past=i<ci,cls=cur?"cur":past?"past":"";
     var tag=cur?"⭐ Current":past?"✓ Done":"Month "+(i+1);
-    var recs=(s.receivers||[]).map(function(r){var nm=mNm(r.mid);return'<span class="badge '+(cur?'bgd':'bg')+'">'+nm+'</span>'}).join('');
-    var tf=PO[i]&&PO[i].confirmed?'<span class="badge bg">💸 '+fD(PO[i].date)+'</span>':'';
+    var slots=s.slots||[];
+    var recBadges=slots.map(function(sl){
+      if(sl.type==="single")return'<span class="badge '+(cur?'bgd':'bg')+'">'+mNm(sl.mid)+'</span>';
+      return(sl.parts||[]).map(function(p){return'<span class="badge bpu">'+mNm(p.mid)+' ('+fK(p.share)+')</span>'}).join('');
+    }).join('');
     var nt=NOTES[i]?'<div class="note-box">📝 '+NOTES[i]+'</div>':'<div style="font-size:11px;color:var(--t3);margin-top:6px;font-style:italic;cursor:pointer" data-act="editNote" data-idx="'+i+'">+ Note</div>';
-    h+='<div class="card tl '+cls+'"><div style="display:flex;justify-content:space-between;gap:8px"><div style="flex:1;min-width:0"><div class="tl-tag">'+tag+'</div><div class="tl-mo">'+s.month+'</div><div style="margin-top:4px">'+recs+'</div><div style="margin-top:3px">'+tf+'</div>'+nt+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0"><div style="text-align:right"><div style="font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase">Payout</div><div style="font-weight:700;font-size:14px;color:var(--g)">'+fmt(P$)+'</div></div><button class="bi" data-act="editMo" data-idx="'+i+'" style="font-size:11px;padding:5px 10px">✎ Edit</button><button class="bi" data-act="editNote" data-idx="'+i+'" style="font-size:11px;padding:5px 10px">📝 Note</button><button class="bi" style="font-size:11px;padding:5px 10px;color:var(--r)" data-act="delMonth" data-idx="'+i+'">🗑</button></div></div></div>';
+
+    // Build per-person payout breakdown
+    var payoutRows='';
+    var people=[]; // [{mid,name,amount}]
+    for(var j=0;j<slots.length;j++){
+      var sl=slots[j];
+      if(sl.type==="single"){people.push({mid:sl.mid,name:mNm(sl.mid),amount:P$});}
+      else{
+        var grpTot=(sl.parts||[]).reduce(function(s,p){return s+(+p.share||0)},0);
+        for(var k=0;k<(sl.parts||[]).length;k++){
+          var p=sl.parts[k];
+          var share=grpTot>0?Math.round(p.share/grpTot*P$):0;
+          people.push({mid:p.mid,name:mNm(p.mid),amount:share});
+        }
+      }
+    }
+    var totalPayout=people.reduce(function(s,p){return s+p.amount},0);
+    for(var pIdx=0;pIdx<people.length;pIdx++){
+      var person=people[pIdx],po=PAYOUT[payKey(i,person.mid)];
+      var sentB=po&&po.sent?'<span class="badge bg" style="font-size:9px">✓ Sent '+fD(po.date)+'</span>':'';
+      payoutRows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(pIdx<people.length-1?'border-bottom:1px solid #f9f7f2':'')+'"><div class="av sm">'+ini(person.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+person.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(person.amount)+' '+sentB+'</div></div>'+(po&&po.sent?'':'<button class="chk sm" data-act="markPO" data-mi="'+i+'" data-mid="'+person.mid+'">✓</button>')+'<button class="bi" style="padding:5px 8px;font-size:10px" data-act="payoutMsg" data-mi="'+i+'" data-mid="'+person.mid+'" data-amt="'+person.amount+'">📱</button></div>';
+    }
+
+    h+='<div class="card tl '+cls+'"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0"><div class="tl-tag">'+tag+'</div><div class="tl-mo">'+s.month+'</div><div style="margin-top:4px">'+recBadges+'</div>'+nt+'</div><div style="display:flex;gap:6px;flex-shrink:0"><button class="bi" data-act="editMo" data-idx="'+i+'" style="font-size:11px;padding:5px 9px">✎</button><button class="bi" data-act="editNote" data-idx="'+i+'" style="font-size:11px;padding:5px 9px">📝</button><button class="bi" style="font-size:11px;padding:5px 9px;color:var(--r)" data-act="delMonth" data-idx="'+i+'">🗑</button></div></div>';
+    h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--ln)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px">💰 Payout Breakdown</span><span style="font-size:13px;font-weight:700;color:var(--g)">Rs. '+fmt(totalPayout)+'</span></div>'+payoutRows+'</div>';
+    h+='</div>';
   }
   el.innerHTML=h;
 };
 
 R.members=function(){
-  var el=document.getElementById("pg-members"),P$=pool();
+  var el=document.getElementById("pg-members"),P$=totalPool();
   var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+M.length+' members • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>';
   for(var i=0;i<M.length;i++){
-    var m=M[i],mons=mMons(m.id),g=isGrp(m);
-    var mb=mons.length?mons.map(function(mn){return'<span class="badge bgd">🎯 '+mn.month+'</span>'}).join(''):'<span class="badge br">⚠ No month</span>';
+    var m=M[i],slots=mSlots(m.id),total=mMonthly(m.id);
+    var mb=slots.length?slots.map(function(sl){return'<span class="badge bgd">🎯 '+sl.month+(sl.type==="group"?' 👥':'')+'</span>'}).join(''):'<span class="badge br">⚠ No month</span>';
     var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
-    var grpBdg=g?'<span class="badge bpu">👥 Group ('+m.contributors.length+')</span>':'';
-    var ch='';
-    if(g){
-      ch='<div style="margin-top:9px;border-top:1px solid var(--ln);padding-top:9px">';
-      for(var j=0;j<m.contributors.length;j++){var c=m.contributors[j];ch+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'+(j<m.contributors.length-1?'border-bottom:1px solid #f9f7f2':'')+'"><div class="av sm">'+ini(c.name)+'</div><div style="flex:1"><div style="font-size:12px;font-weight:600">'+c.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(c.amount)+'/mo'+(c.phone?' • '+c.phone:' • <span style="color:var(--o)">No phone</span>')+'</div></div>'+(c.phone?'<button class="bi" style="font-size:11px;padding:5px 9px" data-act="cIntro" data-mid="'+m.id+'" data-cid="'+c.id+'">📣</button>':'')+'</div>';}
-      ch+='</div>';
-    }
-    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(mAmt(m))+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+' '+grpBdg+'</div>'+ch+'</div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Month</button><button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄':'📣')+'</button><button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button></div></div>';
+    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:4px">'+mb+'</div><div style="margin-top:3px">'+is+'</div></div></div><div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button><button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄':'📣')+'</button><button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button></div></div>';
   }
   el.innerHTML=h;
 };
 
 R.payments=function(){
-  var el=document.getElementById("pg-payments"),mi=selMo,P$=pool(),pc=pdCt(mi),pa=pdTotal(mi),pct=M.length?Math.round(pc/M.length*100):0;
+  var el=document.getElementById("pg-payments"),mi=selMo,P$=totalPool(),pc=pdCt(mi),pa=pdTotal(mi),pct=M.length?Math.round(pc/M.length*100):0;
   var opts='';for(var i=0;i<S.length;i++)opts+='<option value="'+i+'"'+(i===mi?' selected':'')+'>'+S[i].month+(i===curMo()?" • Current":"")+'</option>';
   var h='<div class="shdr"><div><h3>💰 Payments</h3><small>Month select karke track karein</small></div></div>';
   h+='<div style="background:var(--gdl);border:1px solid #e8dcc0;border-radius:13px;padding:12px 14px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">📅 Month</div><select class="sel" id="pay-sel" style="margin:0;border-color:#e8dcc0;font-size:15px;font-weight:700">'+opts+'</select></div>';
-  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="sl">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+M.length+' paid</div></div><div style="text-align:right"><div class="sl">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(P$)+'</div></div></div><div class="prog"><div class="pb" style="width:'+pct+'%;background:'+(pc===M.length?'var(--g)':'var(--o)')+'"></div></div>'+(PO[mi]&&PO[mi].confirmed?'<div style="font-size:11px;color:var(--g);font-weight:600;margin-top:7px">💸 Transferred '+fD(PO[mi].date)+'</div>':'')+'</div>';
+  h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="sl">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+M.length+' paid</div></div><div style="text-align:right"><div class="sl">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(P$)+'</div></div></div><div class="prog"><div class="pb" style="width:'+pct+'%;background:'+(pc===M.length?'var(--g)':'var(--o)')+'"></div></div></div>';
 
   for(var i=0;i<M.length;i++){
-    var m=M[i],g=isGrp(m),fp=isFullPd(mi,m);
-    if(!g){
-      var ip=isPd(mi,m.id),inf=P[mi+"-"+m.id],rm=REM[mi+"-"+m.id]||{count:0,lastDate:""};
-      var lt=(!ip&&isLate())?'<span class="badge br" style="font-size:10px">Late</span>':'';
-      var rc=(!ip&&rm.count>0)?'<span class="badge bb" style="font-size:10px">📱'+rm.count+'x • '+dAgo(rm.lastDate)+'</span>':'';
-      h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+(ip?'var(--g)':'var(--ln)')+'"><div style="display:flex;align-items:center;gap:10px"><button class="chk'+(ip?' on':'')+'" data-act="togPay" data-mi="'+mi+'" data-mid="'+m.id+'">'+(ip?'✓':'')+'</button><div style="flex:1;min-width:0"><div class="rn" style="color:'+(ip?'var(--g)':'var(--t1)')+'">'+m.name+'</div><div class="ra">Rs. '+fmt(mAmt(m))+(ip&&inf&&inf.date?' • '+fD(inf.date):'')+'</div>'+(lt||rc?'<div style="margin-top:2px">'+lt+rc+'</div>':'')+'</div>'+(ip?'':'<button class="bwa" style="padding:7px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>')+'</div></div>';
-    } else {
-      var gPa=pAmt(mi,m),gTo=mAmt(m),gPct=gTo?Math.round(gPa/gTo*100):0;
-      h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+(fp?'var(--g)':gPa>0?'var(--o)':'var(--ln)')+'"><div style="font-size:13px;font-weight:700;color:'+(fp?'var(--g)':'var(--t1)')+'">'+m.name+' <span class="badge bpu">👥</span></div><div style="font-size:11px;color:var(--t3);margin:2px 0">Rs. '+fmt(gPa)+' / '+fmt(gTo)+(fp?' • ✅':'')+'</div><div class="prog" style="margin-bottom:6px"><div class="pb" style="width:'+gPct+'%;background:'+(fp?'var(--g)':'var(--o)')+'"></div></div>';
-      for(var j=0;j<m.contributors.length;j++){
-        var c=m.contributors[j],cp=isCPd(mi,m.id,c.id),ci2=P[mi+"-"+m.id+"-"+c.id],cr=REM[mi+"-"+m.id+"-"+c.id]||{count:0};
-        h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0 6px 4px;border-top:1px solid #f5f3ed"><div style="width:2px;min-height:28px;background:var(--ln);flex-shrink:0;border-radius:1px"></div><div class="av sm">'+ini(c.name)+'</div><div style="flex:1"><div style="font-size:12px;font-weight:600;color:'+(cp?'var(--g)':'var(--t1)')+'">'+c.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(c.amount)+(cp&&ci2&&ci2.date?' • '+fD(ci2.date):'')+((!cp&&cr.count>0)?' • 📱'+cr.count+'x':'')+'</div></div><button class="chk sm'+(cp?' on':'')+'" data-act="togCPay" data-mi="'+mi+'" data-mid="'+m.id+'" data-cid="'+c.id+'">'+(cp?'✓':'')+'</button>'+(cp?'':'<button class="bwa" style="padding:5px 8px;font-size:10px" data-act="cRem" data-mid="'+m.id+'" data-cid="'+c.id+'" data-mi="'+mi+'">📱</button>')+'</div>';
+    var m=M[i],due=payDue(mi,m.id),pst=payStatus(mi,m.id),pinf=getPay(mi,m.id);
+    var rm=REM[payKey(mi,m.id)]||{count:0,lastDate:""};
+    var color=pst==="paid"?"var(--g)":pst==="partial"?"var(--o)":"var(--ln)";
+    var statusTxt=pst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(pinf.completedDate?' '+fD(pinf.completedDate):'')+'</span>':
+                   pst==="partial"?'<span style="color:var(--o);font-weight:700">Partial: '+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':
+                   '<span style="color:var(--t3)">Unpaid: '+fmt(due)+'</span>';
+    var lt=(pst!=="paid"&&isLate())?'<span class="badge br" style="font-size:10px">Late</span>':'';
+    var rc=(pst!=="paid"&&rm.count>0)?'<span class="badge bb" style="font-size:10px">📱'+rm.count+'x • '+dAgo(rm.lastDate)+'</span>':'';
+
+    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+color+'">';
+    h+='<div style="display:flex;align-items:center;gap:10px">';
+    h+='<div class="av'+(pst==="paid"?'':'')+'" style="'+(pst==="paid"?'background:var(--gl);color:var(--g)':'')+'">'+ini(m.name)+'</div>';
+    h+='<div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">'+statusTxt+'</div>'+(lt||rc?'<div style="margin-top:2px">'+lt+rc+'</div>':'')+'</div>';
+    h+='<button class="bi" style="padding:7px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button>';
+    if(pst!=="paid")h+='<button class="bwa" style="padding:7px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>';
+    h+='</div>';
+    if(pinf.history&&pinf.history.length>0){
+      h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f3ed">';
+      for(var hIdx=0;hIdx<pinf.history.length;hIdx++){
+        h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);padding:2px 0"><span>📅 '+fD(pinf.history[hIdx].date)+'</span><span style="font-weight:600;color:var(--t2)">Rs. '+fmt(pinf.history[hIdx].amount)+'</span></div>';
       }
       h+='</div>';
     }
+    h+='</div>';
   }
   el.innerHTML=h;
   document.getElementById("pay-sel").addEventListener("change",function(){selMo=parseInt(this.value);R.payments();R.home()});
@@ -544,141 +624,111 @@ document.addEventListener("click",function(e){
   var b=e.target.closest("[data-act]");if(!b)return;
   var a=b.dataset.act,mid=b.dataset.mid,cid=b.dataset.cid,mi=b.dataset.mi?parseInt(b.dataset.mi):0,idx=b.dataset.idx?parseInt(b.dataset.idx):0;
 
-  // Navigation
   if(a==="prevMo"){if(selMo>0){selMo--;R.home()}}
   else if(a==="nextMo"){if(selMo<S.length-1){selMo++;R.home()}}
 
-  // Payments
-  else if(a==="qpay"){
-    var m=mBy(mid);
-    if(m&&isGrp(m)){for(var i=0;i<m.contributors.length;i++)P[mi+"-"+mid+"-"+m.contributors[i].id]={paid:true,date:tdy()}}
-    else P[mi+"-"+mid]={paid:true,date:tdy()};
-    svAll();toast("✅ Paid");
+  // ===== Feature 1: Partial Payments =====
+  else if(a==="payModal"){openPayModal(mi,mid)}
+  else if(a==="addPay"){
+    var amt=parseInt(document.getElementById("pm-amt").value)||0;
+    var date=document.getElementById("pm-date").value||tdy();
+    if(amt<=0){toast("⚠️ Amount likhein");return}
+    addPayment(mi,mid,amt,date);svAll();closeM();toast("✅ Payment added");
   }
-  else if(a==="qcpay"){P[mi+"-"+mid+"-"+cid]={paid:true,date:tdy()};svAll();toast("✅ Paid")}
-  else if(a==="togPay"){var k=mi+"-"+mid;P[k]?delete P[k]:P[k]={paid:true,date:tdy()};svAll()}
-  else if(a==="togCPay"){var k=mi+"-"+mid+"-"+cid;P[k]?delete P[k]:P[k]={paid:true,date:tdy()};svAll()}
-  else if(a==="payout"){PO[mi]={confirmed:true,date:tdy()};svAll();toast("💸 Confirmed!")}
+  else if(a==="undoPay"){removeLastPayment(mi,mid);svAll();closeM();toast("↺ Last payment removed")}
+  else if(a==="clearPay"){clearPayment(mi,mid);svAll();closeM();toast("↺ Payment cleared")}
+  else if(a==="markFullPaid"){
+    var due=payDue(mi,mid),pinf=getPay(mi,mid);
+    var remaining=due-pinf.totalPaid;
+    if(remaining>0)addPayment(mi,mid,remaining,tdy());
+    svAll();closeM();toast("✅ Fully paid");
+  }
 
   // Reminders
   else if(a==="rem1"){
-    var m=mBy(mid);if(!m){return}
+    var m=mBy(mid);if(!m)return;
     if(!m.phone){toast("⚠️ Phone add karein!");return}
-    var rk=mi+"-"+mid;if(!REM[rk])REM[rk]={count:0,lastDate:""};
+    var rk=payKey(mi,mid);if(!REM[rk])REM[rk]={count:0,lastDate:""};
     REM[rk].count++;REM[rk].lastDate=tdy();sv();
-    waOpen(m.phone,remMsg(m.name,S[mi].month,mAmt(m)));
+    var pinf=getPay(mi,mid);
+    waOpen(m.phone,remMsg(m.name,S[mi].month,payDue(mi,mid),pinf.totalPaid));
     toast("📱 Reminder #"+REM[rk].count);svAll();
   }
-  else if(a==="cRem"){
-    var m=mBy(mid);if(!m)return;
-    var c=null;for(var i=0;i<(m.contributors||[]).length;i++)if(m.contributors[i].id===cid){c=m.contributors[i];break}
-    if(!c||!c.phone){toast("⚠️ Phone nahi!");return}
-    var rk=mi+"-"+mid+"-"+cid;if(!REM[rk])REM[rk]={count:0,lastDate:""};
-    REM[rk].count++;REM[rk].lastDate=tdy();sv();
-    waOpen(c.phone,remMsg(c.name,S[mi].month,c.amount));svAll();
-  }
   else if(a==="remAll"){
-    var up=unpaid(mi),sent=0;
+    var up=unpaidOrPartial(mi),sent=0;
     for(var i=0;i<up.length;i++){
-      var m=up[i];
-      if(!isGrp(m)){
-        if(!m.phone)continue;
-        (function(m,d){setTimeout(function(){var rk=mi+"-"+m.id;if(!REM[rk])REM[rk]={count:0,lastDate:""};REM[rk].count++;REM[rk].lastDate=tdy();waOpen(m.phone,remMsg(m.name,S[mi].month,mAmt(m)))},d)})(m,sent*1200);sent++;
-      } else {
-        for(var j=0;j<m.contributors.length;j++){
-          var c=m.contributors[j];
-          if(isCPd(mi,m.id,c.id)||!c.phone)continue;
-          (function(m,c,d){setTimeout(function(){var rk=mi+"-"+m.id+"-"+c.id;if(!REM[rk])REM[rk]={count:0,lastDate:""};REM[rk].count++;REM[rk].lastDate=tdy();waOpen(c.phone,remMsg(c.name,S[mi].month,c.amount))},d)})(m,c,sent*1200);sent++;
-        }
-      }
+      var m=up[i];if(!m.phone)continue;
+      (function(m,d){setTimeout(function(){
+        var rk=payKey(mi,m.id);if(!REM[rk])REM[rk]={count:0,lastDate:""};
+        REM[rk].count++;REM[rk].lastDate=tdy();
+        var pinf=getPay(mi,m.id);
+        waOpen(m.phone,remMsg(m.name,S[mi].month,payDue(mi,m.id),pinf.totalPaid));
+      },d)})(m,sent*1200);sent++;
     }
     if(!sent){toast("⚠️ Kisi ka phone nahi!");return}
     setTimeout(function(){svAll()},sent*1200+300);
     toast("📢 "+sent+" reminders...");
   }
 
-  // Mubarak
-  else if(a==="mubarak"){var m=mBy(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}waOpen(m.phone,mubMsg(m.name,S[mi].month))}
+  // ===== Feature 3: Per-person payout =====
+  else if(a==="markPO"){PAYOUT[payKey(mi,mid)]={sent:true,date:tdy()};svAll();toast("✅ Marked sent")}
+  else if(a==="payoutMsg"){
+    var m=mBy(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}
+    var amt=parseInt(b.dataset.amt)||0;
+    waOpen(m.phone,mubMsg(m.name,S[mi].month,amt));
+  }
 
   // Intro
   else if(a==="intro1"){
     var m=mBy(mid);if(!m)return;
-    if(!isGrp(m)){if(!m.phone){toast("⚠️ Phone add karein!");return}INTRO[mid]=true;sv();waOpen(m.phone,introMsg(mid));toast("📣 Sent");svAll();}
-    else{var sent=0;for(var i=0;i<m.contributors.length;i++){var c=m.contributors[i];if(!c.phone)continue;(function(c,d){setTimeout(function(){waOpen(c.phone,cIntroMsg(c.name,c.amount,mid))},d)})(c,sent*1200);sent++;}if(!sent){toast("⚠️ Contributors ke phones nahi!");return}INTRO[mid]=true;setTimeout(function(){svAll()},sent*1200+200);toast("📣 "+sent+" sent");}
-  }
-  else if(a==="cIntro"){
-    var m=mBy(mid);if(!m)return;
-    var c=null;for(var i=0;i<(m.contributors||[]).length;i++)if(m.contributors[i].id===cid){c=m.contributors[i];break}
-    if(!c||!c.phone){toast("⚠️ Phone nahi!");return}
-    INTRO[mid]=true;sv();waOpen(c.phone,cIntroMsg(c.name,c.amount,mid));toast("📣 Sent to "+c.name);svAll();
+    if(!m.phone){toast("⚠️ Phone add karein!");return}
+    INTRO[mid]=true;sv();waOpen(m.phone,introMsg(mid));toast("📣 Sent");svAll();
   }
   else if(a==="introAll"){
     var sent=0,delay=0;
-    for(var i=0;i<M.length;i++){var m=M[i];
-      if(!isGrp(m)){if(!m.phone)continue;(function(m,d){setTimeout(function(){INTRO[m.id]=true;waOpen(m.phone,introMsg(m.id))},d)})(m,delay);delay+=1300;sent++;}
-      else{for(var j=0;j<m.contributors.length;j++){var c=m.contributors[j];if(!c.phone)continue;(function(m,c,d){setTimeout(function(){INTRO[m.id]=true;waOpen(c.phone,cIntroMsg(c.name,c.amount,m.id))},d)})(m,c,delay);delay+=1300;sent++;}}
+    for(var i=0;i<M.length;i++){var m=M[i];if(!m.phone)continue;
+      (function(m,d){setTimeout(function(){INTRO[m.id]=true;waOpen(m.phone,introMsg(m.id))},d)})(m,delay);delay+=1300;sent++;
     }
     if(!sent){toast("⚠️ Kisi ka phone nahi!");return}
     setTimeout(function(){svAll()},delay+300);toast("📣 "+sent+" intros...");
   }
 
-  // CRUD
+  // ===== Member CRUD =====
   else if(a==="addMem"){openMemForm(null)}
   else if(a==="editMem"){openMemForm(mid)}
   else if(a==="delMem"){confirmDel(mid)}
   else if(a==="doDel"){
     var id=b.dataset.mid;M=M.filter(function(m){return m.id!==id});
-    for(var i=0;i<S.length;i++)S[i].receivers=(S[i].receivers||[]).filter(function(r){return r.mid!==id});
-    var ks=Object.keys(P);for(var i=0;i<ks.length;i++)if(ks[i].indexOf(id)!==-1)delete P[ks[i]];
+    for(var i=0;i<S.length;i++){
+      S[i].slots=(S[i].slots||[]).filter(function(sl){
+        if(sl.type==="single")return sl.mid!==id;
+        sl.parts=(sl.parts||[]).filter(function(p){return p.mid!==id});
+        return sl.parts.length>0;
+      });
+    }
+    var ks=Object.keys(PAY);for(var i=0;i<ks.length;i++)if(ks[i].indexOf("-"+id)!==-1||ks[i].indexOf(id+"-")===0)delete PAY[ks[i]];
     delete INTRO[id];svAll();closeM();toast("🗑 Deleted");
   }
   else if(a==="saveMem"){saveMemForm(b.dataset.mid||"")}
-  else if(a==="addC"){addCRow()}
-  else if(a==="remC"){b.closest(".cf").remove();updCTot()}
+
+  // ===== Feature 2: Flexible month assignment =====
   else if(a==="assignMo"){openAssign(mid)}
+  else if(a==="addAssignRow"){addAssignRow()}
+  else if(a==="remAssignRow"){b.closest(".cf").remove()}
   else if(a==="saveAssign"){saveAssign(b.dataset.mid)}
+
   else if(a==="editMo"){openMoEdit(idx)}
   else if(a==="delMonth"){confirmDelMonth(idx)}
-  else if(a==="doDelMonth"){
-    var idx2=parseInt(b.dataset.idx);
-    S.splice(idx2,1);
-    // Re-index payments, reminders, payouts, notes for months after deleted index
-    var newP={},newR={},newPO={},newN={};
-    for(var i=0;i<S.length;i++){
-      var oldIdx=i>=idx2?i+1:i;
-      // Copy payments
-      for(var j=0;j<M.length;j++){
-        var mid2=M[j].id;
-        if(P[oldIdx+"-"+mid2])newP[i+"-"+mid2]=P[oldIdx+"-"+mid2];
-        if(REM[oldIdx+"-"+mid2])newR[i+"-"+mid2]=REM[oldIdx+"-"+mid2];
-        if(isGrp(M[j]))for(var k=0;k<M[j].contributors.length;k++){
-          var cid2=M[j].contributors[k].id;
-          if(P[oldIdx+"-"+mid2+"-"+cid2])newP[i+"-"+mid2+"-"+cid2]=P[oldIdx+"-"+mid2+"-"+cid2];
-          if(REM[oldIdx+"-"+mid2+"-"+cid2])newR[i+"-"+mid2+"-"+cid2]=REM[oldIdx+"-"+mid2+"-"+cid2];
-        }
-      }
-      if(PO[oldIdx])newPO[i]=PO[oldIdx];
-      if(NOTES[oldIdx])newN[i]=NOTES[oldIdx];
-    }
-    P=newP;REM=newR;PO=newPO;NOTES=newN;
-    if(selMo>=S.length)selMo=Math.max(0,S.length-1);
-    svAll();closeM();updHdr();toast("🗑 Month deleted");
-  }
+  else if(a==="doDelMonth"){doDelMonth(parseInt(b.dataset.idx))}
   else if(a==="addMonth"){openAddMonth()}
   else if(a==="doAddMonth"){
-    var moName=document.getElementById("nm-mo").value.trim()||"Month "+(S.length+1);
-    var recId=document.getElementById("nm-rec").value;
-    var recs=recId?[{mid:recId,amount:mAmt(mBy(recId))||50000}]:[];
-    S.push({month:moName,receivers:recs});
-    svAll();closeM();updHdr();toast("✅ "+moName+" added");
+    var nm=document.getElementById("nm-mo").value.trim()||"Month "+(S.length+1);
+    S.push({month:nm,slots:[]});svAll();closeM();updHdr();toast("✅ "+nm+" added");
   }
-  else if(a==="addRec"){addRecRow()}
-  else if(a==="remRec"){b.closest(".rec-r").remove()}
-  else if(a==="saveMo"){saveMoEdit(idx)}
   else if(a==="editNote"){openNote(idx)}
   else if(a==="saveNote"){saveNoteF(idx)}
 
-  // Settings
+  // ===== Settings =====
   else if(a==="settings"){openSet()}
   else if(a==="editBank"){openBank()}
   else if(a==="saveBank"){saveBank()}
@@ -688,15 +738,15 @@ document.addEventListener("click",function(e){
   else if(a==="saveDl"){saveDl()}
   else if(a==="editTpl"){openTpl()}
   else if(a==="saveTpl"){saveTpl()}
-  else if(a==="resetTpl"){SET.templates={reminder:defTpl("reminder"),mubarak:defTpl("mubarak")};sv();closeM();toast("↺ Templates reset")}
+  else if(a==="resetTpl"){SET.templates={reminder:defTpl("reminder"),partial:defTpl("partial"),mubarak:defTpl("mubarak")};sv();closeM();toast("↺ Templates reset")}
   else if(a==="export"){doExport()}
   else if(a==="import"){document.getElementById("fi").click()}
   else if(a==="sync"){setSS("syncing");fbPull().then(function(){svAll();setSS("ok");toast("✅ Synced")}).catch(function(){toast("⚠️ Fail")})}
   else if(a==="toggleDZ"){var dz=document.getElementById("dz");if(dz)dz.style.display=dz.style.display==="none"?"block":"none"}
   else if(a==="resetP"){openM('<div class="mdl-h"><h3>Reset Payments?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6">Sirf payments clear honge. Members safe.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doResetP">Reset</button></div>')}
-  else if(a==="doResetP"){P={};PO={};svAll();closeM();toast("↺ Reset")}
+  else if(a==="doResetP"){PAY={};PAYOUT={};svAll();closeM();toast("↺ Reset")}
   else if(a==="resetAll"){openM('<div class="mdl-h"><h3>⚠️ Reset Everything?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>Sab delete ho jayega.</strong><br><span style="color:var(--r);font-weight:600">Pehle backup lein!</span></p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doResetAll">Reset All</button></div>')}
-  else if(a==="doResetAll"){M=JSON.parse(JSON.stringify(DEF_MEM));S=JSON.parse(JSON.stringify(DEF_SCH));P={};REM={};INTRO={};PO={};NOTES={};SET={startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}};svAll();closeM();toast("✅ Reset")}
+  else if(a==="doResetAll"){M=JSON.parse(JSON.stringify(DEF_MEM));S=JSON.parse(JSON.stringify(DEF_SCH));PAY={};REM={};INTRO={};PAYOUT={};NOTES={};SET={startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}};svAll();closeM();toast("✅ Reset")}
   else if(a==="doRestore"){try{applyD(JSON.parse(b.dataset.json));svAll();closeM();toast("✅ Restored")}catch(x){toast("⚠️ Error")}}
   else if(a==="closeM"){closeM()}
 });
@@ -704,82 +754,141 @@ document.addEventListener("click",function(e){
 document.addEventListener("change",function(e){
   if(e.target.tagName==="SELECT"&&e.target.dataset.f==="mid"){
     var m=mBy(e.target.value);
-    if(m){var ai=e.target.closest(".rec-r").querySelector('[data-f="amount"]');if(ai&&!ai.value)ai.value=mAmt(m)}
+    if(m){var ai=e.target.closest(".rec-r");if(ai){var amtIn=ai.querySelector('[data-f="amount"]');if(amtIn&&!amtIn.value)amtIn.value=m.monthly}}
   }
-  if(e.target.id==="grp-tog"){var on=e.target.checked;document.getElementById("sec-s").style.display=on?"none":"block";document.getElementById("sec-g").style.display=on?"block":"none"}
-  if(e.target.className&&e.target.className.indexOf("c-amt")!==-1)updCTot();
 });
 
 // ============================
-// CRUD FUNCTIONS
+// PAYMENT MODAL (Feature 1)
+// ============================
+function openPayModal(mi,mid){
+  var m=mBy(mid);if(!m)return;
+  var due=payDue(mi,mid),pinf=getPay(mi,mid),remaining=due-pinf.totalPaid;
+  var histHtml='';
+  if(pinf.history&&pinf.history.length){
+    histHtml='<div style="margin-top:10px"><div class="lbl">Payment History</div>';
+    for(var i=0;i<pinf.history.length;i++)histHtml+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f3ed;font-size:13px"><span style="color:var(--t3)">📅 '+fD(pinf.history[i].date)+'</span><span style="font-weight:600">Rs. '+fmt(pinf.history[i].amount)+'</span></div>';
+    histHtml+='</div>';
+  }
+  openM('<div class="mdl-h"><h3>💰 '+m.name+'</h3><div class="mdl-d">'+S[mi].month+' • Due: Rs. '+fmt(due)+'</div></div><div class="mdl-b">'+
+    '<div style="background:var(--gl);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center"><div class="sl">Status</div><div style="font-size:18px;font-weight:800;color:var(--g);margin-top:3px">Rs. '+fmt(pinf.totalPaid)+' / '+fmt(due)+'</div>'+(remaining>0?'<div style="font-size:12px;color:var(--o);margin-top:2px">Remaining: Rs. '+fmt(remaining)+'</div>':'<div style="font-size:12px;color:var(--g);margin-top:2px">✓ Fully Paid</div>')+'</div>'+
+    '<div class="fld"><label class="lbl">Add Payment Amount</label><input id="pm-amt" class="inp" type="number" inputmode="numeric" placeholder="'+remaining+'" value="'+(remaining>0?remaining:'')+'"></div>'+
+    '<div class="fld"><label class="lbl">Date</label><input id="pm-date" class="inp" type="date" value="'+tdy()+'"></div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:6px"><button class="bp" style="flex:1;font-size:13px" data-act="addPay" data-mi="'+mi+'" data-mid="'+mid+'">+ Add Payment</button>'+(remaining>0?'<button class="bs" style="flex:1;font-size:13px" data-act="markFullPaid" data-mi="'+mi+'" data-mid="'+mid+'">Mark Full Paid</button>':'')+'</div>'+
+    (pinf.history&&pinf.history.length?'<button class="bi" style="width:100%;color:var(--r);font-size:12px;margin-top:6px" data-act="undoPay" data-mi="'+mi+'" data-mid="'+mid+'">↺ Undo Last Payment</button>':'')+
+    histHtml+
+    '</div><div class="mdl-f"><button class="bs" style="width:100%" data-act="closeM">Close</button></div>');
+}
+
+// ============================
+// MEMBER FORM
 // ============================
 function openMemForm(mid){
-  var m=mid?mBy(mid):{name:"",monthly:50000,phone:"",contributors:[]};if(!m)return;
-  var g=isGrp(m),mons=mid?mMons(mid):[];
-  var mi='';if(mid&&mons.length){mi='<div class="fld"><div class="lbl">Assigned Months</div>';for(var i=0;i<mons.length;i++)mi+='<span class="badge bgd" style="font-size:12px;padding:5px 10px">🎯 '+mons[i].month+'</span> ';mi+='<div style="font-size:11px;color:var(--t3);margin-top:6px">📅 Month button se change karein</div></div>';}
+  var m=mid?mBy(mid):{name:"",monthly:50000,phone:""};if(!m)return;
+  var slots=mid?mSlots(mid):[];
+  var mi='';if(mid&&slots.length){mi='<div class="fld"><div class="lbl">Assigned Months</div>';for(var i=0;i<slots.length;i++)mi+='<span class="badge bgd" style="font-size:12px;padding:5px 10px">🎯 '+slots[i].month+(slots[i].type==="group"?' 👥':'')+'</span> ';mi+='<div style="font-size:11px;color:var(--t3);margin-top:6px">📅 Months button se change karein</div></div>';}
   openM('<div class="mdl-h"><h3>'+(mid?"Edit Member":"New Member")+'</h3></div><div class="mdl-b">'+
-    '<div class="tg-row"><label class="tg"><input type="checkbox" id="grp-tog"'+(g?' checked':'')+'><span class="tg-sl"></span></label><span style="font-size:13px;font-weight:600;color:var(--t2)">👥 Group</span></div>'+
     '<div class="fld"><label class="lbl">Name</label><input id="f-nm" class="inp" type="text" placeholder="Naam" value="'+(m.name||"")+'"></div>'+
-    '<div id="sec-s" style="display:'+(g?"none":"block")+'"><div class="fld"><label class="lbl">Monthly (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" value="'+(m.monthly||50000)+'"></div><div class="fld"><label class="lbl">Phone</label><input id="f-ph" class="inp" type="tel" inputmode="tel" placeholder="923..." value="'+(m.phone||"")+'"></div></div>'+
-    '<div id="sec-g" style="display:'+(g?"block":"none")+'"><div style="font-size:11px;color:var(--t3);margin-bottom:8px">Har contributor ki details alag se</div><div id="c-list"></div><button class="bs" style="width:100%;margin-bottom:8px;font-size:13px" data-act="addC">+ Contributor</button><div id="c-tot" style="font-size:13px;font-weight:700;color:var(--g);text-align:center;margin-bottom:6px">Total: Rs. 0</div></div>'+
+    '<div class="fld"><label class="lbl">Standard Monthly (Rs.)</label><input id="f-amt" class="inp" type="number" inputmode="numeric" value="'+(m.monthly||50000)+'"><div style="font-size:11px;color:var(--t3);margin-top:5px">Yeh single-receiver months ke liye rate hai. Agar member ki committee divide hai (group), woh "Months" assign karte waqt set hoga.</div></div>'+
+    '<div class="fld"><label class="lbl">Phone</label><input id="f-ph" class="inp" type="tel" inputmode="tel" placeholder="923..." value="'+(m.phone||"")+'"></div>'+
     mi+'</div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveMem" data-mid="'+(mid||"")+'">Save</button></div>');
-  if(g&&m.contributors)for(var i=0;i<m.contributors.length;i++){var c=m.contributors[i];addCRow(c.name,c.amount,c.phone)}
   setTimeout(function(){var n=document.getElementById("f-nm");if(n)n.focus()},150);
 }
-function addCRow(nm,amt,ph){
-  var l=document.getElementById("c-list");if(!l)return;
-  var d=document.createElement("div");d.className="cf";
-  d.innerHTML='<div class="cf-top"><span style="font-size:12px;font-weight:700;color:var(--t2)">Contributor</span><button class="bi" style="color:var(--r);padding:4px 8px;font-size:11px" data-act="remC">✕</button></div><div class="fld" style="margin-bottom:8px"><label class="lbl">Name</label><input class="inp c-nm" type="text" placeholder="Naam" value="'+(nm||"")+'"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="fld" style="margin:0"><label class="lbl">Amount</label><input class="inp c-amt" type="number" inputmode="numeric" placeholder="30000" value="'+(amt||"")+'"></div><div class="fld" style="margin:0"><label class="lbl">Phone</label><input class="inp c-ph" type="tel" inputmode="tel" placeholder="923..." value="'+(ph||"")+'"></div></div>';
-  l.appendChild(d);updCTot();
-}
-function updCTot(){var a=document.querySelectorAll(".c-amt"),t=0;for(var i=0;i<a.length;i++)t+=parseInt(a[i].value)||0;var el=document.getElementById("c-tot");if(el)el.textContent="Total: Rs. "+fmt(t)}
-
 function saveMemForm(mid){
   var nm=document.getElementById("f-nm").value.trim();if(!nm){toast("⚠️ Name zaroori hai");return}
-  var g=document.getElementById("grp-tog").checked,contribs=[];
-  if(g){
-    var ns=document.querySelectorAll(".c-nm"),as=document.querySelectorAll(".c-amt"),ps=document.querySelectorAll(".c-ph");
-    for(var i=0;i<ns.length;i++){var cn=ns[i].value.trim(),ca=parseInt(as[i].value)||0,cp=ps[i].value.trim();if(!cn||!ca){toast("⚠️ Har contributor ka naam aur amount chahiye");return}contribs.push({id:gid(),name:cn,amount:ca,phone:cp})}
-    if(!contribs.length){toast("⚠️ Kam se kam ek contributor");return}
-  }
-  var monthly=g?contribs.reduce(function(s,c){return s+c.amount},0):(parseInt(document.getElementById("f-amt").value)||0);
-  if(!g&&monthly<=0){toast("⚠️ Amount chahiye");return}
-  var phone=g?"":(document.getElementById("f-ph").value.trim());
-  if(mid){for(var i=0;i<M.length;i++)if(M[i].id===mid){M[i].name=nm;M[i].monthly=monthly;M[i].phone=phone;M[i].contributors=contribs;break}toast("✅ Updated")}
-  else{M.push({id:gid(),name:nm,monthly:monthly,phone:phone,contributors:contribs});toast("✅ Added")}
+  var amt=parseInt(document.getElementById("f-amt").value)||0;if(amt<=0){toast("⚠️ Amount chahiye");return}
+  var ph=document.getElementById("f-ph").value.trim();
+  if(mid){for(var i=0;i<M.length;i++)if(M[i].id===mid){M[i].name=nm;M[i].monthly=amt;M[i].phone=ph;break}toast("✅ Updated")}
+  else{M.push({id:gid(),name:nm,monthly:amt,phone:ph});toast("✅ Added")}
   svAll();closeM();
 }
 function confirmDel(mid){var m=mBy(mid);if(!m)return;openM('<div class="mdl-h"><h3>Delete?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+m.name+'</strong> delete karein? Schedule se bhi hat jayega.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doDel" data-mid="'+mid+'">Delete</button></div>')}
 
+// ============================
+// FEATURE 2: Flexible month/slot assignment
+// ============================
+// Shows every month. For each, lets the user say: this member takes it
+// either alone (full pool) or as part of a group with a specific Rs share.
 function openAssign(mid){
   var m=mBy(mid);if(!m)return;
-  var rows='';for(var i=0;i<S.length;i++){
-    var assigned=false,amt=mAmt(m);
-    for(var j=0;j<(S[i].receivers||[]).length;j++)if(S[i].receivers[j].mid===mid){assigned=true;amt=S[i].receivers[j].amount;break}
-    rows+='<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f3ed"><input type="checkbox" id="am-'+i+'" '+(assigned?'checked':'')+'style="width:18px;height:18px;accent-color:var(--g)"><div style="flex:1"><div style="font-size:13px;font-weight:600">'+S[i].month+'</div></div><input type="number" id="aa-'+i+'" placeholder="Amount" value="'+amt+'" style="width:90px;padding:6px 8px;border:1.5px solid var(--ln);border-radius:8px;font-size:13px;font-family:inherit" inputmode="numeric"></div>';
+  var rows='';
+  for(var i=0;i<S.length;i++){
+    var slots=S[i].slots||[];
+    var existingType=null,existingShare=m.monthly;
+    for(var j=0;j<slots.length;j++){
+      if(slots[j].type==="single"&&slots[j].mid===mid){existingType="single";break}
+      if(slots[j].type==="group"){
+        for(var k=0;k<(slots[j].parts||[]).length;k++)if(slots[j].parts[k].mid===mid){existingType="group";existingShare=slots[j].parts[k].share;break}
+      }
+      if(existingType)break;
+    }
+    var checked=existingType?"checked":"";
+    rows+='<div class="cf" style="margin-bottom:6px"><div style="display:flex;align-items:center;gap:10px"><input type="checkbox" class="am-chk" id="am-'+i+'" '+checked+' data-idx="'+i+'" style="width:18px;height:18px;accent-color:var(--g);flex-shrink:0"><div style="flex:1"><div style="font-size:13px;font-weight:600">'+S[i].month+'</div></div></div>';
+    rows+='<div id="am-detail-'+i+'" style="margin-top:'+(existingType?'8px':'0')+';display:'+(existingType?'block':'none')+'">';
+    rows+='<div style="display:flex;gap:8px;align-items:center"><label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px"><input type="radio" name="am-type-'+i+'" value="single" '+(existingType==="single"||!existingType?"checked":"")+'> Full turn</label><label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:4px"><input type="radio" name="am-type-'+i+'" value="group" '+(existingType==="group"?"checked":"")+'> Shared (group)</label></div>';
+    rows+='<input type="number" id="am-share-'+i+'" placeholder="Aapka hissa (Rs.)" value="'+(existingShare||m.monthly)+'" style="width:100%;margin-top:6px;padding:8px 10px;border:1.5px solid var(--ln);border-radius:8px;font-size:13px;font-family:inherit" inputmode="numeric">';
+    rows+='</div></div>';
   }
-  openM('<div class="mdl-h"><h3>📅 '+m.name+'</h3><div class="mdl-d">Tick months jahan committee hai</div></div><div class="mdl-b"><div style="max-height:55vh;overflow-y:auto">'+rows+'</div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveAssign" data-mid="'+mid+'">Save</button></div>');
+  openM('<div class="mdl-h"><h3>📅 '+m.name+' — Months</h3><div class="mdl-d">Tick karein jis month mein committee hai. "Shared" select karke amount likhein agar kisi aur ke saath split hai.</div></div><div class="mdl-b"><div style="max-height:55vh;overflow-y:auto">'+rows+'</div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveAssign" data-mid="'+mid+'">Save</button></div>');
+
+  // toggle detail visibility on checkbox change
+  document.querySelectorAll(".am-chk").forEach(function(chk){
+    chk.addEventListener("change",function(){
+      var idx2=this.dataset.idx;
+      document.getElementById("am-detail-"+idx2).style.display=this.checked?"block":"none";
+    });
+  });
 }
 function saveAssign(mid){
+  var m=mBy(mid);if(!m)return;
   for(var i=0;i<S.length;i++){
-    var chk=document.getElementById('am-'+i),ai=document.getElementById('aa-'+i);if(!chk||!ai)continue;
-    S[i].receivers=(S[i].receivers||[]).filter(function(r){return r.mid!==mid});
-    if(chk.checked){var a=parseInt(ai.value)||mAmt(mBy(mid))||50000;S[i].receivers.push({mid:mid,amount:a})}
+    var chk=document.getElementById('am-'+i);if(!chk)continue;
+    var slots=S[i].slots||[];
+    // Remove this member from all slots in this month first
+    slots=slots.filter(function(sl){
+      if(sl.type==="single")return sl.mid!==mid;
+      sl.parts=(sl.parts||[]).filter(function(p){return p.mid!==mid});
+      return true; // keep group slot even if emptied temporarily; cleanup below
+    });
+    slots=slots.filter(function(sl){return sl.type==="single"||((sl.parts||[]).length>0)});
+
+    if(chk.checked){
+      var typeRadio=document.querySelector('input[name="am-type-'+i+'"]:checked');
+      var type=typeRadio?typeRadio.value:"single";
+      var shareInp=document.getElementById('am-share-'+i);
+      var share=parseInt(shareInp?shareInp.value:m.monthly)||m.monthly;
+      if(type==="single"){
+        slots.push({type:"single",mid:mid});
+      } else {
+        // find an existing group slot in this month to join, or create new
+        var grp=null;
+        for(var j=0;j<slots.length;j++)if(slots[j].type==="group"){grp=slots[j];break}
+        if(!grp){grp={type:"group",parts:[]};slots.push(grp);}
+        grp.parts.push({mid:mid,share:share});
+      }
+    }
+    S[i].slots=slots;
   }
-  svAll();closeM();toast("✅ Months updated");
+  svAll();closeM();toast("✅ Months updated for "+m.name);
 }
 
+// ============================
+// MONTH EDIT (simple receiver assignment from Timeline side, kept for quick single-receiver setup)
+// ============================
 function openMoEdit(idx){
-  var s=S[idx],rh='';
-  for(var j=0;j<(s.receivers||[]).length;j++){var r=s.receivers[j];rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts(r.mid)+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amount" value="'+r.amount+'" data-f="amount" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remRec">✕</button></div>';}
-  openM('<div class="mdl-h"><h3>'+s.month+'</h3><div class="mdl-d">Kis ki committee hai?</div></div><div class="mdl-b"><div id="rec-list">'+rh+'</div><button class="bs" style="width:100%;margin-top:4px;font-size:13px" data-act="addRec">+ Add</button></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveMo" data-idx="'+idx+'">Save</button></div>');
-}
-function addRecRow(){var l=document.getElementById("rec-list");if(!l)return;var d=document.createElement("div");d.className="rec-r";d.innerHTML='<select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts("")+'</select><input class="inp" type="number" inputmode="numeric" placeholder="Amt" value="" data-f="amount" style="max-width:100px"><button class="bi" style="color:var(--r)" data-act="remRec">✕</button>';l.appendChild(d)}
-function saveMoEdit(idx){
-  var rows=document.querySelectorAll("#rec-list .rec-r"),recs=[];
-  for(var i=0;i<rows.length;i++){var mid=rows[i].querySelector('[data-f="mid"]').value,a=parseInt(rows[i].querySelector('[data-f="amount"]').value)||0;if(mid&&a>0)recs.push({mid:mid,amount:a})}
-  if(!recs.length){toast("⚠️ Kam se kam ek receiver");return}
-  S[idx].receivers=recs;svAll();closeM();toast("✅ Updated");
+  var s=S[idx],slots=s.slots||[];
+  var rh='';
+  for(var j=0;j<slots.length;j++){
+    var sl=slots[j];
+    if(sl.type==="single"){
+      rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts(sl.mid)+'</select><span style="font-size:11px;color:var(--t3);padding:0 6px">full</span><button class="bi" style="color:var(--r)" data-act="remSlotRow" data-jdx="'+j+'" data-idx="'+idx+'">✕</button></div>';
+    } else {
+      for(var k=0;k<(sl.parts||[]).length;k++){
+        rh+='<div class="rec-r"><select class="sel" data-f="mid" style="flex:1;margin:0">'+mOpts(sl.parts[k].mid)+'</select><input class="inp" type="number" inputmode="numeric" value="'+sl.parts[k].share+'" style="max-width:90px"><span style="font-size:9px;color:var(--t3)">grp</span><button class="bi" style="color:var(--r)" data-act="remSlotRow" data-jdx="'+j+'" data-idx="'+idx+'">✕</button></div>';
+      }
+    }
+  }
+  openM('<div class="mdl-h"><h3>'+s.month+'</h3><div class="mdl-d">Quick edit — bara changes ke liye Members tab se "📅 Months" use karein</div></div><div class="mdl-b"><div id="rec-list">'+rh+'</div><div style="font-size:11px;color:var(--t3);margin-top:8px">Naye members add/remove karne ke liye unke Member card se "📅 Months" button use karein — wahan group/single dono set ho sakta hai.</div></div><div class="mdl-f"><button class="bs" style="width:100%" data-act="closeM">Close</button></div>');
 }
 
 function openNote(idx){var s=S[idx],c=NOTES[idx]||"";openM('<div class="mdl-h"><h3>📝 '+s.month+'</h3></div><div class="mdl-b"><div class="fld"><textarea id="note-ta" class="ta" placeholder="Note likhein...">'+c+'</textarea></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveNote" data-idx="'+idx+'">Save</button></div>')}
@@ -787,20 +896,29 @@ function saveNoteF(idx){var t=document.getElementById("note-ta");if(!t)return;va
 
 function confirmDelMonth(idx){
   var s=S[idx];
-  openM('<div class="mdl-h"><h3>Delete Month?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+s.month+'</strong> delete karein? Is month ke payments aur notes bhi delete ho jayenge.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doDelMonth" data-idx="'+idx+'">Delete</button></div>');
+  openM('<div class="mdl-h"><h3>Delete Month?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+s.month+'</strong> delete karein? Is month ke payments, payouts aur notes bhi delete ho jayenge.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bd" data-act="doDelMonth" data-idx="'+idx+'">Delete</button></div>');
 }
-
-function openAddMonth(){
-  // Calculate next month based on last schedule entry
-  var lastMo="New Month";
-  if(S.length>0){
-    var sY=SET.startYear||2026,sM=SET.startMonth||6;
-    var nextIdx=S.length;
-    var y=sY+Math.floor((sM+nextIdx)/12);
-    var m=(sM+nextIdx)%12;
-    lastMo=MFULL[m]+" "+y;
+function doDelMonth(idx){
+  S.splice(idx,1);
+  var newPay={},newRem={},newPO={},newN={};
+  for(var i=0;i<S.length;i++){
+    var oldIdx=i>=idx?i+1:i;
+    for(var j=0;j<M.length;j++){
+      var mid2=M[j].id,k1=oldIdx+"-"+mid2,k2=i+"-"+mid2;
+      if(PAY[k1])newPay[k2]=PAY[k1];
+      if(REM[k1])newRem[k2]=REM[k1];
+      if(PAYOUT[k1])newPO[k2]=PAYOUT[k1];
+    }
+    if(NOTES[oldIdx])newN[i]=NOTES[oldIdx];
   }
-  openM('<div class="mdl-h"><h3>+ Add Month</h3></div><div class="mdl-b"><div class="fld"><label class="lbl">Month Name</label><input id="nm-mo" class="inp" type="text" value="'+lastMo+'"></div><div class="fld"><label class="lbl">Receiver (optional)</label><select id="nm-rec" class="sel" style="margin:0">'+mOpts("")+'</select></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="doAddMonth">Add</button></div>');
+  PAY=newPay;REM=newRem;PAYOUT=newPO;NOTES=newN;
+  if(selMo>=S.length)selMo=Math.max(0,S.length-1);
+  svAll();closeM();updHdr();toast("🗑 Month deleted");
+}
+function openAddMonth(){
+  var nextMo="New Month";
+  if(S.length>0){var sY=SET.startYear||2026,sM=SET.startMonth||6,nIdx=S.length;var y=sY+Math.floor((sM+nIdx)/12),m=(sM+nIdx)%12;nextMo=MFULL[m]+" "+y;}
+  openM('<div class="mdl-h"><h3>+ Add Month</h3></div><div class="mdl-b"><div class="fld"><label class="lbl">Month Name</label><input id="nm-mo" class="inp" type="text" value="'+nextMo+'"></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="doAddMonth">Add</button></div>');
 }
 
 // ============================
@@ -808,7 +926,7 @@ function openAddMonth(){
 // ============================
 function openSet(){
   var at=0;for(var i=0;i<S.length;i++)at+=pdTotal(i);
-  var P$=pool(),exp=P$*S.length,pct=exp?Math.round(at/exp*100):0;
+  var P$=totalPool(),exp=P$*S.length,pct=exp?Math.round(at/exp*100):0;
   var bd=SET.bankDetails||{};
   openM('<div class="mdl-h"><h3>⚙ Settings</h3></div><div class="mdl-b">'+
     '<div style="padding:14px;background:linear-gradient(135deg,var(--gl),#fff);border-radius:12px;margin-bottom:16px"><div class="sl">Total Collected</div><div style="font-size:22px;font-weight:800;color:var(--g);margin-top:3px">Rs. '+fmt(at)+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">of Rs. '+fmt(exp)+' ('+pct+'%)</div></div>'+
@@ -822,7 +940,7 @@ function openSet(){
       '<div class="sr" data-act="editBank"><div class="sr-i">🏦</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Bank Details</div><div style="font-size:11px;color:var(--t3)">'+(bd.bank||'Add karein')+'</div></div></div>'+
       '<div class="sr" data-act="editStart"><div class="sr-i">📅</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Start Month</div><div style="font-size:11px;color:var(--t3)">'+MFULL[SET.startMonth||6]+' '+(SET.startYear||2026)+'</div></div></div>'+
       '<div class="sr" data-act="editDl"><div class="sr-i">⏰</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Deadline Day</div><div style="font-size:11px;color:var(--t3)">'+dlDay()+' tareekh</div></div></div>'+
-      '<div class="sr" data-act="editTpl"><div class="sr-i">📝</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Message Templates</div><div style="font-size:11px;color:var(--t3)">Reminder aur mubarak messages edit karein</div></div></div>'+
+      '<div class="sr" data-act="editTpl"><div class="sr-i">📝</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Message Templates</div><div style="font-size:11px;color:var(--t3)">Reminder, partial, mubarak</div></div></div>'+
     '</div>'+
     '<div class="mdl-b" style="padding-top:14px;padding-bottom:0"><div style="font-size:10px;font-weight:700;color:var(--r);text-transform:uppercase;letter-spacing:.9px;cursor:pointer" data-act="toggleDZ">⚠️ Danger Zone ▾</div><div id="dz" style="display:none;margin-top:10px"><div style="border:1px solid #f5b8b3;border-radius:12px;overflow:hidden"><div class="sr dng" data-act="resetP"><div class="sr-i">↺</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Reset Payments</div></div></div><div class="sr dng" data-act="resetAll"><div class="sr-i">🗑</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Reset Everything</div></div></div></div></div></div>'+
     '<div class="mdl-f" style="margin-top:16px"><button class="bs" style="width:100%" data-act="closeM">Close</button></div>');
@@ -838,23 +956,13 @@ function saveStart(){
 function openDl(){var o='';for(var d=1;d<=28;d++)o+='<option value="'+d+'"'+(d===dlDay()?' selected':'')+'>'+d+'</option>';openM('<div class="mdl-h"><h3>⏰ Deadline</h3></div><div class="mdl-b"><div class="fld"><label class="lbl">Day</label><select id="dl-d" class="sel" style="margin:0">'+o+'</select></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveDl">Save</button></div>')}
 function saveDl(){SET.deadlineDay=parseInt(document.getElementById("dl-d").value);sv();closeM();toast("✅ "+SET.deadlineDay+" tareekh")}
 
-function defTpl(type){
-  if(type==="reminder")return"Assalam o Alaikum {name}!\n\nCommittee ka reminder:\nMonth: {month}\nAmount: Rs. {amount}\n\n{deadline} tak jama karwa dein.\n\n🏦 Payment Details:\n{bank_details}\n\nShukriya! 🙏";
-  return"Mubarak ho {name}! 🎉\n\nIs mahine ({month}) committee aap ki hai!\nTotal Payout: Rs. {payout}\n\nJald transfer ho jayegi. Shukriya!";
-}
-function getTpl(type){return(SET.templates&&SET.templates[type])||defTpl(type)}
-function fillTpl(tpl,vars){
-  return tpl.replace(/{name}/g,vars.name||"").replace(/{month}/g,vars.month||"")
-    .replace(/{amount}/g,fmt(vars.amount||0)).replace(/{deadline}/g,dlDay()+" tareekh")
-    .replace(/{bank_details}/g,bankStr()).replace(/{payout}/g,fmt(vars.payout||pool()));
-}
-
 function openTpl(){
-  var rt=getTpl("reminder"),mt=getTpl("mubarak");
-  openM('<div class="mdl-h"><h3>📝 Message Templates</h3><div class="mdl-d">Variables: <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{name}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{month}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{amount}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{deadline}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{bank_details}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{payout}</code></div></div><div class="mdl-b"><div class="fld"><label class="lbl">📱 Reminder</label><textarea id="tpl-rem" class="ta" style="min-height:120px">'+rt+'</textarea></div><div class="fld"><label class="lbl">🎉 Mubarak</label><textarea id="tpl-mub" class="ta" style="min-height:100px">'+mt+'</textarea></div></div><div class="mdl-f"><button class="bs" data-act="resetTpl">↺ Reset</button><button class="bp" data-act="saveTpl">Save</button></div>');
+  var rt=getTpl("reminder"),pt=getTpl("partial"),mt=getTpl("mubarak");
+  openM('<div class="mdl-h"><h3>📝 Message Templates</h3><div class="mdl-d">Variables: <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{name}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{month}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{amount}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{paid}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{remaining}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{deadline}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{bank_details}</code> <code style="background:#f0ede4;padding:2px 6px;border-radius:5px;font-size:11px">{payout}</code></div></div><div class="mdl-b"><div class="fld"><label class="lbl">📱 Reminder (unpaid)</label><textarea id="tpl-rem" class="ta" style="min-height:100px">'+rt+'</textarea></div><div class="fld"><label class="lbl">📱 Reminder (partial paid)</label><textarea id="tpl-partial" class="ta" style="min-height:100px">'+pt+'</textarea></div><div class="fld"><label class="lbl">🎉 Mubarak / Payout</label><textarea id="tpl-mub" class="ta" style="min-height:90px">'+mt+'</textarea></div></div><div class="mdl-f"><button class="bs" data-act="resetTpl">↺ Reset</button><button class="bp" data-act="saveTpl">Save</button></div>');
 }
-function saveTpl(){if(!SET.templates)SET.templates={};SET.templates.reminder=document.getElementById("tpl-rem").value;SET.templates.mubarak=document.getElementById("tpl-mub").value;sv();closeM();toast("✅ Templates saved")}
-function doExport(){var d=allD();d.exportedAt=new Date().toISOString();var b=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="committee-backup-"+tdy()+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast("✅ Downloaded")}
+function saveTpl(){if(!SET.templates)SET.templates={};SET.templates.reminder=document.getElementById("tpl-rem").value;SET.templates.partial=document.getElementById("tpl-partial").value;SET.templates.mubarak=document.getElementById("tpl-mub").value;sv();closeM();toast("✅ Templates saved")}
+
+function doExport(){var d=allD();d.exportedAt=new Date().toISOString();var bl=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});var u=URL.createObjectURL(bl);var a=document.createElement("a");a.href=u;a.download="committee-backup-"+tdy()+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast("✅ Downloaded")}
 document.getElementById("fi").addEventListener("change",function(e){
   var f=e.target.files[0];if(!f)return;var r=new FileReader();
   r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(!d.members)throw 0;var js=JSON.stringify(d);openM('<div class="mdl-h"><h3>📥 Restore?</h3></div><div class="mdl-b"><p style="color:var(--t2);font-size:14px;line-height:1.6"><strong>'+d.members.length+' members</strong>. Current data replace ho jayega.</p></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="doRestore" id="rbtn">Restore</button></div>');var rb=document.getElementById("rbtn");if(rb)rb.dataset.json=js}catch(x){toast("⚠️ Invalid file")}};
@@ -876,6 +984,7 @@ fbPull().then(function(){
 });
 
 })();
+
 </script>
 </body>
 </html>
