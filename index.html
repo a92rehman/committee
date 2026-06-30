@@ -599,58 +599,35 @@ R.timeline=function(){
 
 R.members=function(){
   var el=document.getElementById("pg-members"),P$=totalPool();
-
-  // A member is "group-only" if they ONLY appear as a part inside other people's group slots,
-  // and have no single-receiver slot of their own. These don't get their own card.
-  function isPureGroupContrib(mid){
-    var mySlots=mSlots(mid);
-    if(!mySlots.length)return false; // no slots → show them (unassigned)
-    for(var i=0;i<mySlots.length;i++)if(mySlots[i].type==="single")return false;
-    return true; // all slots are group-type, no independent single turn
-  }
-
-  // Build set of group-contrib IDs so we can show them inside the "owner" card
-  var groupContribIds={};
-  for(var i=0;i<S.length;i++){
-    var slots=S[i].slots||[];
-    for(var j=0;j<slots.length;j++){
-      if(slots[j].type==="group"){
-        for(var k=0;k<(slots[j].parts||[]).length;k++){
-          var pid=slots[j].parts[k].mid;
-          if(isPureGroupContrib(pid))groupContribIds[pid]=true;
-        }
-      }
-    }
-  }
-
-  var shown=0;
-  var h='';
+  var h='',shown=0;
   for(var i=0;i<M.length;i++){
-    var m=M[i];
-    // Skip pure group-only contributors — they appear inside their group's card
-    if(groupContribIds[m.id])continue;
+    var m=M[i],slots=mSlots(m.id),total=mMonthly(m.id);
     shown++;
-    var slots=mSlots(m.id),total=mMonthly(m.id);
-    var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
-
+    var is=INTRO[m.id]?'<span class="badge bg">\u2705 Intro sent</span>':'<span class="badge bo">\ud83d\udce3 Pending</span>';
     var monthsHtml='';
     if(!slots.length){
-      monthsHtml='<div style="margin-top:6px"><span class="badge br">⚠ No month assigned</span></div>';
+      monthsHtml='<div style="margin-top:6px"><span class="badge br">\u26a0 No month assigned</span></div>';
     } else {
       monthsHtml='<div style="margin-top:8px">';
       for(var s=0;s<slots.length;s++){
         var sl=slots[s];
         if(sl.type==="single"){
-          monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">🎯 '+sl.month+' — Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(sl.share)+'</div></div>';
+          monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">\ud83c\udfaf '+sl.month+' \u2014 Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(sl.share)+'</div></div>';
         } else {
           var partners=groupPartners(m.id,sl.idx)||[];
-          monthsHtml+='<div style="background:#f3e8ff;border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:#7c3aed">👥 '+sl.month+' — Group (aapka hissa: Rs. '+fmt(sl.monthlyShare)+'/mo → Payout: Rs. '+fmt(sl.share)+')</div>';
+          monthsHtml+='<div style="background:#f3e8ff;border-radius:9px;padding:8px 10px;margin-bottom:6px">';
+          monthsHtml+='<div style="font-size:12px;font-weight:700;color:#7c3aed">\ud83d\udc65 '+sl.month+' \u2014 Group (Rs. '+fmt(sl.monthlyShare)+'/mo \u2192 Payout: Rs. '+fmt(sl.share)+')</div>';
           if(partners.length){
             monthsHtml+='<div style="margin-top:6px;border-top:1px solid #e9d8fd;padding-top:6px">';
             for(var p=0;p<partners.length;p++){
               var pm=mBy(partners[p].mid);
-              var pIntro=INTRO[partners[p].mid]?'🔄':'📣';
-              monthsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'+(p<partners.length-1?'border-bottom:1px solid #ede9ff':'')+'"><div class="av sm">'+ini(partners[p].name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+partners[p].name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(partners[p].share)+'/mo'+(pm&&pm.phone?' • '+pm.phone:' • <span style="color:var(--o)">No phone</span>')+'</div></div>'+(pm&&pm.phone?'<button class="bi" style="padding:4px 8px;font-size:10px" data-act="intro1" data-mid="'+partners[p].mid+'">'+pIntro+'</button>':'')+'</div>';
+              var pIntro=INTRO[partners[p].mid]?'\ud83d\udd04':'\ud83d\udce3';
+              monthsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'+(p<partners.length-1?'border-bottom:1px solid #ede9ff':'')+'">'+
+                '<div class="av sm">'+ini(partners[p].name)+'</div>'+
+                '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+partners[p].name+'</div>'+
+                '<div style="font-size:11px;color:var(--t3)">Rs. '+fmt(partners[p].share)+'/mo'+(pm&&pm.phone?' \u2022 '+pm.phone:' \u2022 <span style=\"color:var(--o)\">No phone</span>')+'</div></div>'+
+                (pm&&pm.phone?'<button class="bi" style="padding:4px 8px;font-size:10px" data-act="intro1" data-mid="'+partners[p].mid+'">'+pIntro+'</button>':'')+
+              '</div>';
             }
             monthsHtml+='</div>';
           }
@@ -659,11 +636,25 @@ R.members=function(){
       }
       monthsHtml+='</div>';
     }
-
-    h+='<div class="card" style="padding:13px 15px"><div style="display:flex;align-items:center;gap:11px"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+m.name+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo total • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div><div style="margin-top:3px">'+is+'</div></div></div>'+monthsHtml+'<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button><button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button><button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄 Resend':'📣 Intro')+'</button><button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button></div></div>';
+    h+='<div class="card" style="padding:13px 15px">'+
+      '<div style="display:flex;align-items:center;gap:11px">'+
+        '<div class="av">'+ini(m.name)+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:14px;font-weight:700">'+m.name+'</div>'+
+          '<div style="font-size:11px;color:var(--t3);margin-top:2px">\ud83d\udcb0 Rs. '+fmt(total)+'/mo \u2022 <span style=\"color:'+(m.phone?'var(--g)':'var(--o)')+'\">\ud83d\udcde '+(m.phone||'No phone')+'</span></div>'+
+          '<div style="margin-top:3px">'+is+'</div>'+
+        '</div>'+
+      '</div>'+
+      monthsHtml+
+      '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">'+
+        '<button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">\u270e Edit</button>'+
+        '<button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">\ud83d\udcc5 Months</button>'+
+        '<button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'\ud83d\udd04 Resend':'\ud83d\udce3 Intro')+'</button>'+
+        '<button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">\ud83d\uddd1</button>'+
+      '</div>'+
+    '</div>';
   }
-
-  el.innerHTML='<div class="shdr"><div><h3>👥 Members</h3><small>'+shown+' cards • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>'+h;
+  el.innerHTML='<div class="shdr"><div><h3>\ud83d\udc65 Members</h3><small>'+shown+' members \u2022 Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>'+h;
 };
 
 R.payments=function(){
