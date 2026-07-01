@@ -455,7 +455,7 @@ function fbListen(){
     es.addEventListener('put',function(e){try{var d=JSON.parse(e.data).data;if(!d||!d.members)return;
       if(JSON.stringify(d.payments)===JSON.stringify(PAY)&&JSON.stringify(d.members)===JSON.stringify(M))return;
       _rem=true;applyD(d);lvSave();setSS("ok");
-      var a=document.querySelector('.pg.on');if(a){var t=a.id.replace('pg-','');if(R[t])R[t]()}
+      try{R.home();R.timeline();R.members();R.payments()}catch(rex){}
       toast("🔄 Synced");_rem=false;
     }catch(ex){}});
     es.onerror=function(){setSS("err","Offline")};
@@ -599,62 +599,126 @@ R.timeline=function(){
 
 R.members=function(){
   var el=document.getElementById("pg-members"),P$=totalPool();
-  var h='',shown=0;
+
+  // ── Build group index from schedule ──────────────────────────────
+  // Key = sorted member IDs joined by "|"; value = {parts, months:[{mi,month}]}
+  var groupByKey={};
+  for(var i=0;i<S.length;i++){
+    var slots=S[i].slots||[];
+    for(var j=0;j<slots.length;j++){
+      var sl=slots[j];
+      if(sl.type==="group"&&(sl.parts||[]).length>0){
+        var key=sl.parts.map(function(p){return p.mid}).sort().join("|");
+        if(!groupByKey[key]){groupByKey[key]={parts:sl.parts,months:[]};}
+        groupByKey[key].months.push({mi:i,month:S[i].month});
+      }
+    }
+  }
+  var groupKeys=Object.keys(groupByKey);
+
+  // Which member IDs appear in ANY group slot
+  var inGroup={};
+  for(var gi=0;gi<groupKeys.length;gi++){
+    var gv=groupByKey[groupKeys[gi]];
+    for(var pi=0;pi<gv.parts.length;pi++) inGroup[gv.parts[pi].mid]=true;
+  }
+
+  // Which member IDs ALSO have at least one single slot
+  var hasSingle={};
+  for(var i=0;i<S.length;i++){
+    var slots=S[i].slots||[];
+    for(var j=0;j<slots.length;j++)
+      if(slots[j].type==="single") hasSingle[slots[j].mid]=true;
+  }
+
+  var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+M.length+' members • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>';
+
+  // ── Group Committee Cards ─────────────────────────────────────────
+  if(groupKeys.length){
+    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.8px;margin:8px 2px 6px">👥 Group Committees</div>';
+    for(var gi=0;gi<groupKeys.length;gi++){
+      var gk=groupKeys[gi],gv=groupByKey[gk];
+      var combinedMonthly=gv.parts.reduce(function(s,p){return s+(+p.share||0)},0);
+      var monthLabels=gv.months.map(function(x){return x.month}).join(', ');
+      var totalPayout=P$*gv.months.length;
+
+      h+='<div class="card" style="border-left:3px solid #7c3aed;padding:13px 15px;background:linear-gradient(to right,#fdf4ff,#fff 85%)">';
+      h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">';
+      h+='<div><div style="font-size:13px;font-weight:700;color:#7c3aed">👥 Shared Committee</div>';
+      h+='<div style="font-size:11px;color:var(--t3);margin-top:2px">📅 '+monthLabels+'</div></div>';
+      h+='<span class="badge bpu">Rs. '+fmt(combinedMonthly)+'/mo</span>';
+      h+='</div>';
+
+      for(var pi=0;pi<gv.parts.length;pi++){
+        var part=gv.parts[pi],mem=mBy(part.mid);
+        if(!mem)continue;
+        var myPayout=combinedMonthly>0?Math.round(part.share/combinedMonthly*totalPayout):0;
+        var is=INTRO[mem.id]?'<span class="badge bg" style="font-size:9px">✅</span>':'<span class="badge bo" style="font-size:9px">📣</span>';
+        h+='<div class="row" style="padding:9px 0">';
+        h+='<div class="av" style="background:#f3e8ff;color:#7c3aed">'+ini(mem.name)+'</div>';
+        h+='<div style="flex:1;min-width:0">';
+        h+='<div class="rn">'+mem.name+'</div>';
+        h+='<div class="ra">💰 Pays Rs. '+fmt(part.share)+'/mo → Payout: Rs. '+fmt(myPayout)+'  '+is+'</div>';
+        h+='<div class="ra" style="color:'+(mem.phone?'var(--t3)':'var(--o)')+'">📞 '+(mem.phone||'No phone')+'</div>';
+        h+='</div>';
+        h+='<div style="display:flex;gap:5px;flex-shrink:0">';
+        h+='<button class="bi" style="padding:5px 8px;font-size:11px" data-act="editMem" data-mid="'+mem.id+'">✎</button>';
+        h+='<button class="bi" style="padding:5px 8px;font-size:11px" data-act="intro1" data-mid="'+mem.id+'">'+(INTRO[mem.id]?'🔄':'📣')+'</button>';
+        h+='<button class="bi" style="color:var(--r);padding:5px 8px;font-size:11px" data-act="delMem" data-mid="'+mem.id+'">🗑</button>';
+        h+='</div>';
+        h+='</div>';
+      }
+      h+='</div>';
+    }
+  }
+
+  // ── Individual Member Cards ───────────────────────────────────────
+  // Show members who are NOT pure-group (i.e., have single slots OR are unassigned)
+  var shown=0,indHtml='';
   for(var i=0;i<M.length;i++){
-    var m=M[i],slots=mSlots(m.id),total=mMonthly(m.id);
+    var m=M[i];
+    if(inGroup[m.id]&&!hasSingle[m.id])continue; // pure group member → shown above
     shown++;
-    var is=INTRO[m.id]?'<span class="badge bg">\u2705 Intro sent</span>':'<span class="badge bo">\ud83d\udce3 Pending</span>';
+    var slots=mSlots(m.id),total=mMonthly(m.id);
+    var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
     var monthsHtml='';
     if(!slots.length){
-      monthsHtml='<div style="margin-top:6px"><span class="badge br">\u26a0 No month assigned</span></div>';
+      monthsHtml='<div style="margin-top:6px"><span class="badge br">⚠ No month assigned</span></div>';
     } else {
       monthsHtml='<div style="margin-top:8px">';
       for(var s=0;s<slots.length;s++){
-        var sl=slots[s];
-        if(sl.type==="single"){
-          monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">\ud83c\udfaf '+sl.month+' \u2014 Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(sl.share)+'</div></div>';
-        } else {
-          var partners=groupPartners(m.id,sl.idx)||[];
-          monthsHtml+='<div style="background:#f3e8ff;border-radius:9px;padding:8px 10px;margin-bottom:6px">';
-          monthsHtml+='<div style="font-size:12px;font-weight:700;color:#7c3aed">\ud83d\udc65 '+sl.month+' \u2014 Group (Rs. '+fmt(sl.monthlyShare)+'/mo \u2192 Payout: Rs. '+fmt(sl.share)+')</div>';
-          if(partners.length){
-            monthsHtml+='<div style="margin-top:6px;border-top:1px solid #e9d8fd;padding-top:6px">';
-            for(var p=0;p<partners.length;p++){
-              var pm=mBy(partners[p].mid);
-              var pIntro=INTRO[partners[p].mid]?'\ud83d\udd04':'\ud83d\udce3';
-              monthsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'+(p<partners.length-1?'border-bottom:1px solid #ede9ff':'')+'">'+
-                '<div class="av sm">'+ini(partners[p].name)+'</div>'+
-                '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+partners[p].name+'</div>'+
-                '<div style="font-size:11px;color:var(--t3)">Rs. '+fmt(partners[p].share)+'/mo'+(pm&&pm.phone?' \u2022 '+pm.phone:' \u2022 <span style=\"color:var(--o)\">No phone</span>')+'</div></div>'+
-                (pm&&pm.phone?'<button class="bi" style="padding:4px 8px;font-size:10px" data-act="intro1" data-mid="'+partners[p].mid+'">'+pIntro+'</button>':'')+
-              '</div>';
-            }
-            monthsHtml+='</div>';
-          }
-          monthsHtml+='</div>';
+        var sl2=slots[s];
+        if(sl2.type==="single"){
+          monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">🎯 '+sl2.month+' — Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(sl2.share)+'</div></div>';
         }
       }
       monthsHtml+='</div>';
     }
-    h+='<div class="card" style="padding:13px 15px">'+
+    indHtml+='<div class="card" style="padding:13px 15px">'+
       '<div style="display:flex;align-items:center;gap:11px">'+
         '<div class="av">'+ini(m.name)+'</div>'+
         '<div style="flex:1;min-width:0">'+
           '<div style="font-size:14px;font-weight:700">'+m.name+'</div>'+
-          '<div style="font-size:11px;color:var(--t3);margin-top:2px">\ud83d\udcb0 Rs. '+fmt(total)+'/mo \u2022 <span style=\"color:'+(m.phone?'var(--g)':'var(--o)')+'\">\ud83d\udcde '+(m.phone||'No phone')+'</span></div>'+
+          '<div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div>'+
           '<div style="margin-top:3px">'+is+'</div>'+
         '</div>'+
       '</div>'+
       monthsHtml+
       '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">'+
-        '<button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">\u270e Edit</button>'+
-        '<button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">\ud83d\udcc5 Months</button>'+
-        '<button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'\ud83d\udd04 Resend':'\ud83d\udce3 Intro')+'</button>'+
-        '<button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">\ud83d\uddd1</button>'+
+        '<button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button>'+
+        '<button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button>'+
+        '<button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+
+        '<button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button>'+
       '</div>'+
     '</div>';
   }
-  el.innerHTML='<div class="shdr"><div><h3>\ud83d\udc65 Members</h3><small>'+shown+' members \u2022 Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>'+h;
+
+  if(shown>0){
+    if(groupKeys.length) h+='<div style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin:12px 2px 6px">👤 Individual Members</div>';
+    h+=indHtml;
+  }
+
+  el.innerHTML=h;
 };
 
 R.payments=function(){
@@ -664,20 +728,39 @@ R.payments=function(){
   h+='<div style="background:var(--gdl);border:1px solid #e8dcc0;border-radius:13px;padding:12px 14px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">📅 Month</div><select class="sel" id="pay-sel" style="margin:0;border-color:#e8dcc0;font-size:15px;font-weight:700">'+opts+'</select></div>';
   h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="sl">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+M.length+' paid</div></div><div style="text-align:right"><div class="sl">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(P$)+'</div></div></div><div class="prog"><div class="pb" style="width:'+pct+'%;background:'+(pc===M.length?'var(--g)':'var(--o)')+'"></div></div></div>';
 
+  // Build group membership map for current month
+  var groupOf={}; // mid -> group label (partner names)
+  var slots=S[mi]?(S[mi].slots||[]):[];
+  for(var j=0;j<slots.length;j++){
+    if(slots[j].type==="group"){
+      var parts=slots[j].parts||[];
+      var names=parts.map(function(p){return(mBy(p.mid)||{name:"?"}).name});
+      for(var k=0;k<parts.length;k++){
+        var others=names.filter(function(n,idx){return idx!==k});
+        groupOf[parts[k].mid]='👥 with '+others.join(', ');
+      }
+    }
+  }
+
   for(var i=0;i<M.length;i++){
     var m=M[i],due=payDue(mi,m.id),pst=payStatus(mi,m.id),pinf=getPay(mi,m.id);
     var rm=REM[payKey(mi,m.id)]||{count:0,lastDate:""};
     var color=pst==="paid"?"var(--g)":pst==="partial"?"var(--o)":"var(--ln)";
+    var isGrp=!!groupOf[m.id];
+    var avStyle=isGrp?'background:#f3e8ff;color:#7c3aed':(pst==="paid"?'background:var(--gl);color:var(--g)':'');
     var statusTxt=pst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(pinf.completedDate?' '+fD(pinf.completedDate):'')+'</span>':
                    pst==="partial"?'<span style="color:var(--o);font-weight:700">Partial: '+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':
-                   '<span style="color:var(--t3)">Unpaid: '+fmt(due)+'</span>';
+                   '<span style="color:var(--t3)">Unpaid: Rs. '+fmt(due)+'</span>';
     var lt=(pst!=="paid"&&isLate())?'<span class="badge br" style="font-size:10px">Late</span>':'';
     var rc=(pst!=="paid"&&rm.count>0)?'<span class="badge bb" style="font-size:10px">📱'+rm.count+'x • '+dAgo(rm.lastDate)+'</span>':'';
+    var grpBadge=isGrp?'<span class="badge bpu" style="font-size:9px">'+groupOf[m.id]+'</span>':'';
 
-    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+color+'">';
+    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+color+(isGrp?';background:linear-gradient(to right,#fdf4ff,#fff 90%)':'')+'">';
     h+='<div style="display:flex;align-items:center;gap:10px">';
-    h+='<div class="av'+(pst==="paid"?'':'')+'" style="'+(pst==="paid"?'background:var(--gl);color:var(--g)':'')+'">'+ini(m.name)+'</div>';
-    h+='<div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">'+statusTxt+'</div>'+(lt||rc?'<div style="margin-top:2px">'+lt+rc+'</div>':'')+'</div>';
+    h+='<div class="av" style="'+avStyle+'">'+ini(m.name)+'</div>';
+    h+='<div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">'+statusTxt+'</div>';
+    if(grpBadge||lt||rc)h+='<div style="margin-top:3px">'+grpBadge+lt+rc+'</div>';
+    h+='</div>';
     h+='<button class="bi" style="padding:7px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button>';
     if(pst!=="paid")h+='<button class="bwa" style="padding:7px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>';
     h+='</div>';
