@@ -556,13 +556,41 @@ R.home=function(){
   // Pending/partial list
   if(up.length>0&&(isCur||isPast)){
     h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--o)">⏳ Pending / Partial ('+up.length+')</div><button class="bwa" style="padding:6px 12px;font-size:11px" data-act="remAll" data-mi="'+mi+'">📢 Remind All</button></div>';
+    // Build permanent group map for the pending list (same approach as payments tab)
+    var hmGrpKey={},hmGrpParts={};
+    for(var si2=0;si2<S.length;si2++){var hsl=S[si2].slots||[];for(var j2=0;j2<hsl.length;j2++){if(hsl[j2].type==="group"){var hp=hsl[j2].parts||[],hk=hp.map(function(p){return p.mid}).sort().join("|");for(var k2=0;k2<hp.length;k2++){if(!hmGrpKey[hp[k2].mid]){hmGrpKey[hp[k2].mid]=hk;hmGrpParts[hk]=hp;}}}}}
+    var hmDone={};
     for(var i=0;i<up.length;i++){
-      var m=up[i],pst=payStatus(mi,m.id),due=payDue(mi,m.id),pinf=getPay(mi,m.id);
-      var rm=REM[payKey(mi,m.id)]||{count:0};
-      var lt=isCur&&isLate()?'<span class="badge br" style="font-size:9px">Late</span>':'';
-      var rc=rm.count>0?'<span class="badge bb" style="font-size:9px">📱'+rm.count+'x</span>':'';
-      var stBadge=pst==="partial"?'<span class="badge bo" style="font-size:9px">'+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':'';
-      h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(due)+'  '+stBadge+lt+rc+'</div></div><button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button><button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div>';
+      var m=up[i];
+      if(hmGrpKey[m.id]){
+        var hk=hmGrpKey[m.id];
+        if(hmDone[hk])continue;
+        hmDone[hk]=true;
+        var hparts=hmGrpParts[hk]||[];
+        // Only show group sub-rows whose members are actually in the up[] list
+        var hupParts=hparts.filter(function(p){return up.some(function(u){return u.id===p.mid})});
+        for(var hi=0;hi<hupParts.length;hi++){
+          var hm=mBy(hupParts[hi].mid);if(!hm)continue;
+          var hpst=payStatus(mi,hm.id),hdue=payDue(mi,hm.id),hpinf=getPay(mi,hm.id);
+          var hrm=REM[payKey(mi,hm.id)]||{count:0};
+          var hlt=isCur&&isLate()?'<span class="badge br" style="font-size:9px">Late</span>':'';
+          var hrc=hrm.count>0?'<span class="badge bb" style="font-size:9px">📱'+hrm.count+'x</span>':'';
+          var hst=hpst==="partial"?'<span class="badge bo" style="font-size:9px">'+fmt(hpinf.totalPaid)+'/'+fmt(hdue)+'</span>':'';
+          h+='<div class="row" style="'+(hi>0?'background:linear-gradient(to right,#fdf4ff,transparent 70%)':'')+'">';
+          h+='<div class="av" style="background:#f3e8ff;color:#7c3aed">'+ini(hm.name)+'</div>';
+          h+='<div style="flex:1;min-width:0"><div class="rn">'+hm.name+' <span style="font-size:9px;color:#7c3aed;font-weight:600">👥</span></div><div class="ra">Rs. '+fmt(hdue)+'  '+hst+hlt+hrc+'</div></div>';
+          h+='<button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+hm.id+'">💰</button>';
+          h+='<button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+hm.id+'" data-mi="'+mi+'">📱</button>';
+          h+='</div>';
+        }
+      } else {
+        var pst=payStatus(mi,m.id),due=payDue(mi,m.id),pinf=getPay(mi,m.id);
+        var rm=REM[payKey(mi,m.id)]||{count:0};
+        var lt=isCur&&isLate()?'<span class="badge br" style="font-size:9px">Late</span>':'';
+        var rc=rm.count>0?'<span class="badge bb" style="font-size:9px">📱'+rm.count+'x</span>':'';
+        var stBadge=pst==="partial"?'<span class="badge bo" style="font-size:9px">'+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':'';
+        h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(due)+'  '+stBadge+lt+rc+'</div></div><button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button><button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div>';
+      }
     }
     h+='</div>';
   }
@@ -633,6 +661,8 @@ R.members=function(){
     }
   }
   var groupKeys=Object.keys(groupByKey);
+  // Sort group cards by their earliest month index
+  groupKeys.sort(function(a,b){return groupByKey[a].months[0].mi-groupByKey[b].months[0].mi;});
 
   // Which member IDs appear in ANY group slot
   var inGroup={};
@@ -648,6 +678,13 @@ R.members=function(){
     for(var j=0;j<slots.length;j++)
       if(slots[j].type==="single") hasSingle[slots[j].mid]=true;
   }
+
+  // Sort individual members by their first assigned month index (unassigned go last)
+  var sortedM=M.slice().sort(function(a,b){
+    var aS=mSlots(a.id),bS=mSlots(b.id);
+    var aI=aS.length?aS[0].idx:9999,bI=bS.length?bS[0].idx:9999;
+    return aI-bI;
+  });
 
   var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+M.length+' members • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>';
 
@@ -693,8 +730,8 @@ R.members=function(){
   // ── Individual Member Cards ───────────────────────────────────────
   // Show members who are NOT pure-group (i.e., have single slots OR are unassigned)
   var shown=0,indHtml='';
-  for(var i=0;i<M.length;i++){
-    var m=M[i];
+  for(var i=0;i<sortedM.length;i++){
+    var m=sortedM[i];
     if(inGroup[m.id]&&!hasSingle[m.id])continue; // pure group member → shown above
     shown++;
     var slots=mSlots(m.id),total=mMonthly(m.id);
@@ -746,47 +783,88 @@ R.payments=function(){
   h+='<div style="background:var(--gdl);border:1px solid #e8dcc0;border-radius:13px;padding:12px 14px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">📅 Month</div><select class="sel" id="pay-sel" style="margin:0;border-color:#e8dcc0;font-size:15px;font-weight:700">'+opts+'</select></div>';
   h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="sl">Progress</div><div style="font-size:17px;font-weight:700;margin-top:2px">'+pc+' of '+M.length+' paid</div></div><div style="text-align:right"><div class="sl">Collected</div><div style="font-size:14px;font-weight:700;color:var(--g)">'+fmt(pa)+' / '+fmt(P$)+'</div></div></div><div class="prog"><div class="pb" style="width:'+pct+'%;background:'+(pc===M.length?'var(--g)':'var(--o)')+'"></div></div></div>';
 
-  // Build group membership map for current month
-  var groupOf={}; // mid -> group label (partner names)
-  var slots=S[mi]?(S[mi].slots||[]):[];
-  for(var j=0;j<slots.length;j++){
-    if(slots[j].type==="group"){
-      var parts=slots[j].parts||[];
-      var names=parts.map(function(p){return(mBy(p.mid)||{name:"?"}).name});
-      for(var k=0;k<parts.length;k++){
-        var others=names.filter(function(n,idx){return idx!==k});
-        groupOf[parts[k].mid]='👥 with '+others.join(', ');
+  // Build permanent group membership from entire schedule (mid → group key + all parts)
+  var permGrpKey={},permGrpParts={};
+  for(var si=0;si<S.length;si++){
+    var sslots=S[si].slots||[];
+    for(var j=0;j<sslots.length;j++){
+      if(sslots[j].type==="group"){
+        var gparts=sslots[j].parts||[];
+        var gkey=gparts.map(function(p){return p.mid}).sort().join("|");
+        for(var k=0;k<gparts.length;k++){
+          if(!permGrpKey[gparts[k].mid]){permGrpKey[gparts[k].mid]=gkey;permGrpParts[gkey]=gparts;}
+        }
       }
     }
   }
 
+  var renderedGrps={};
   for(var i=0;i<M.length;i++){
-    var m=M[i],due=payDue(mi,m.id),pst=payStatus(mi,m.id),pinf=getPay(mi,m.id);
+    var m=M[i];
+    if(permGrpKey[m.id]){
+      var gkey=permGrpKey[m.id];
+      if(renderedGrps[gkey])continue;
+      renderedGrps[gkey]=true;
+      var gparts=permGrpParts[gkey]||[];
+      var allPd=gparts.every(function(p){return payStatus(mi,p.mid)==="paid"});
+      var anyPt=gparts.some(function(p){return payStatus(mi,p.mid)==="partial"});
+      var grpBorderC=allPd?"var(--g)":anyPt?"var(--o)":"var(--ln)";
+      var grpTotalDue=gparts.reduce(function(s,p){return s+payDue(mi,p.mid)},0);
+      var grpTotalPd=gparts.reduce(function(s,p){return s+getPay(mi,p.mid).totalPaid},0);
+      h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+grpBorderC+';background:linear-gradient(to right,#fdf4ff,#fff 90%)">';
+      h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+      h+='<span style="font-size:11px;font-weight:700;color:#7c3aed">👥 Group Committee</span>';
+      h+='<span style="font-size:12px;font-weight:700;color:'+(allPd?'var(--g)':anyPt?'var(--o)':'var(--t3)')+'">Rs. '+fmt(grpTotalPd)+' / '+fmt(grpTotalDue)+'</span>';
+      h+='</div>';
+      for(var pi=0;pi<gparts.length;pi++){
+        var gp=gparts[pi],gm=mBy(gp.mid);if(!gm)continue;
+        var gdue=payDue(mi,gm.id),gpst=payStatus(mi,gm.id),gpinf=getPay(mi,gm.id);
+        var grm=REM[payKey(mi,gm.id)]||{count:0,lastDate:""};
+        var gc=gpst==="paid"?"var(--g)":gpst==="partial"?"var(--o)":"var(--ln)";
+        var gsTxt=gpst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(gpinf.completedDate?' '+fD(gpinf.completedDate):'')+'</span>':
+                    gpst==="partial"?'<span style="color:var(--o);font-weight:700">'+fmt(gpinf.totalPaid)+'/'+fmt(gdue)+'</span>':
+                    '<span style="color:var(--t3)">Rs. '+fmt(gdue)+'</span>';
+        var glt=(gpst!=="paid"&&isLate())?'<span class="badge br" style="font-size:9px">Late</span>':'';
+        var grc=(gpst!=="paid"&&grm.count>0)?'<span class="badge bb" style="font-size:9px">📱'+grm.count+'x</span>':'';
+        h+='<div style="display:flex;align-items:center;gap:9px;'+(pi>0?'padding-top:8px;margin-top:8px;border-top:1px solid #f0ebff':'')+'">';
+        h+='<div class="av" style="background:#f3e8ff;color:#7c3aed;flex-shrink:0">'+ini(gm.name)+'</div>';
+        h+='<div style="flex:1;min-width:0"><div class="rn">'+gm.name+'</div><div class="ra">'+gsTxt+(glt||grc?' '+glt+grc:'')+'</div>';
+        if(gpinf.history&&gpinf.history.length){
+          h+='<div style="margin-top:3px">';
+          for(var hh=0;hh<gpinf.history.length;hh++)
+            h+='<div style="font-size:10px;color:var(--t3)">📅 '+fD(gpinf.history[hh].date)+' • Rs. '+fmt(gpinf.history[hh].amount)+'</div>';
+          h+='</div>';
+        }
+        h+='</div>';
+        h+='<button class="bi" style="padding:6px 8px;font-size:11px;flex-shrink:0" data-act="payModal" data-mi="'+mi+'" data-mid="'+gm.id+'">💰</button>';
+        if(gpst!=="paid")h+='<button class="bwa" style="padding:6px 8px;flex-shrink:0" data-act="rem1" data-mid="'+gm.id+'" data-mi="'+mi+'">📱</button>';
+        h+='</div>';
+      }
+      h+='</div>';
+      continue;
+    }
+    // Individual member card
+    var due=payDue(mi,m.id),pst=payStatus(mi,m.id),pinf=getPay(mi,m.id);
     var rm=REM[payKey(mi,m.id)]||{count:0,lastDate:""};
     var color=pst==="paid"?"var(--g)":pst==="partial"?"var(--o)":"var(--ln)";
-    var isGrp=!!groupOf[m.id];
-    var avStyle=isGrp?'background:#f3e8ff;color:#7c3aed':(pst==="paid"?'background:var(--gl);color:var(--g)':'');
     var statusTxt=pst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(pinf.completedDate?' '+fD(pinf.completedDate):'')+'</span>':
                    pst==="partial"?'<span style="color:var(--o);font-weight:700">Partial: '+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':
                    '<span style="color:var(--t3)">Unpaid: Rs. '+fmt(due)+'</span>';
     var lt=(pst!=="paid"&&isLate())?'<span class="badge br" style="font-size:10px">Late</span>':'';
     var rc=(pst!=="paid"&&rm.count>0)?'<span class="badge bb" style="font-size:10px">📱'+rm.count+'x • '+dAgo(rm.lastDate)+'</span>':'';
-    var grpBadge=isGrp?'<span class="badge bpu" style="font-size:9px">'+groupOf[m.id]+'</span>':'';
-
-    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+color+(isGrp?';background:linear-gradient(to right,#fdf4ff,#fff 90%)':'')+'">';
+    h+='<div class="card" style="padding:10px 12px;border-left:3px solid '+color+'">';
     h+='<div style="display:flex;align-items:center;gap:10px">';
-    h+='<div class="av" style="'+avStyle+'">'+ini(m.name)+'</div>';
+    h+='<div class="av" style="'+(pst==="paid"?'background:var(--gl);color:var(--g)':'')+'">'+ini(m.name)+'</div>';
     h+='<div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">'+statusTxt+'</div>';
-    if(grpBadge||lt||rc)h+='<div style="margin-top:3px">'+grpBadge+lt+rc+'</div>';
+    if(lt||rc)h+='<div style="margin-top:2px">'+lt+rc+'</div>';
     h+='</div>';
     h+='<button class="bi" style="padding:7px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button>';
     if(pst!=="paid")h+='<button class="bwa" style="padding:7px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button>';
     h+='</div>';
     if(pinf.history&&pinf.history.length>0){
       h+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f3ed">';
-      for(var hIdx=0;hIdx<pinf.history.length;hIdx++){
+      for(var hIdx=0;hIdx<pinf.history.length;hIdx++)
         h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--t3);padding:2px 0"><span>📅 '+fD(pinf.history[hIdx].date)+'</span><span style="font-weight:600;color:var(--t2)">Rs. '+fmt(pinf.history[hIdx].amount)+'</span></div>';
-      }
       h+='</div>';
     }
     h+='</div>';
