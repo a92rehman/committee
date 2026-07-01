@@ -101,7 +101,7 @@ npx serve .
 
 ## Deployment
 
-Push `index.html` to the `main` branch. GitHub Pages serves it automatically at `https://a92rehman.github.io/committee/`.
+Push `index.html` to the `main` branch. GitHub Pages serves it automatically.
 
 ---
 
@@ -110,10 +110,10 @@ Push `index.html` to the `main` branch. GitHub Pages serves it automatically at 
 The Firebase Realtime Database URL is set in `index.html` line 168:
 
 ```js
-var FB = 'https://<your-project>.firebaseio.com/committee';
+var FB = 'https://<your-project-id>.firebaseio.com/committee';
 ```
 
 To use your own Firebase project:
-1. Create a Realtime Database in the [Firebase Console](https://console.firebase.google.com/)
+1. Create a Realtime Database in the Firebase Console
 2. Set database rules to allow read/write
 3. Replace the `FB` value with your database URL

@@ -47,7 +47,7 @@ Single-file PWA (`index.html`) for managing a Pakistani committee (ROSCA). Deplo
 
 ## Firebase
 
-- URL hardcoded at line ~168: `var FB = 'https://committee-app-123-default-rtdb.firebaseio.com/committee'`
+- URL hardcoded at line ~168: `var FB = 'https://<project-id>.firebaseio.com/committee'`
 - Uses REST API (`PUT` for push, `GET` for pull, SSE for live updates)
 - Retry on push: 3 attempts with 2s / 4s / 8s backoff
 - SSE reconnect: exponential backoff 1s → 64s, stored in `_es` / `_esRetry`
