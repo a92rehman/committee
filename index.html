@@ -227,7 +227,9 @@ function fmt(n){return Number(n||0).toLocaleString("en-PK")}
 function fK(n){return(n||0)>=100000?(n/100000)+"L":(n||0)>=1000?(n/1000)+"k":""+n}
 function ini(s){return(s||"?").split(/\s+/).slice(0,2).map(function(w){return w[0]}).join("").toUpperCase()}
 function tdy(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function fD(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0].slice(2)}
+function now(){return new Date().toISOString()}
+function fD(s){if(!s)return"";var ds=s.length>10?s.substring(0,10):s;var p=ds.split("-");if(p.length<3)return s;return p[2]+"/"+p[1]+"/"+p[0].slice(2)}
+function fDT(s){if(!s)return"";var d=new Date(s);if(isNaN(d.getTime()))return fD(s);var day=String(d.getDate()).padStart(2,"0"),mon=String(d.getMonth()+1).padStart(2,"0"),yr=String(d.getFullYear()).slice(2),hr=String(d.getHours()).padStart(2,"0"),min=String(d.getMinutes()).padStart(2,"0");return day+"/"+mon+"/"+yr+" "+hr+":"+min;}
 function dAgo(s){if(!s)return"";var d=(new Date()-new Date(s))/864e5;return d<1?"aaj":d<2?"kal":Math.floor(d)+" din pehle"}
 function gid(){return"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
 function parseMonthIdx(s){if(!s)return 99999;var p=s.trim().split(/\s+/);if(p.length<2)return 99999;var mn=p[0].toLowerCase().substring(0,3),yr=parseInt(p[p.length-1])||0;var mi=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(mn);return mi<0?99999:yr*12+mi;}
@@ -345,11 +347,11 @@ function payStatus(mi,mid){
 function addPayment(mi,mid,amount,date){
   var k=payKey(mi,mid);
   if(!PAY[k])PAY[k]={history:[],totalPaid:0,status:"unpaid"};
-  PAY[k].history.push({amount:amount,date:date||tdy()});
+  PAY[k].history.push({amount:amount,date:date||tdy(),recordedAt:now()});
   PAY[k].totalPaid=PAY[k].history.reduce(function(s,h){return s+(+h.amount||0)},0);
   var due=payDue(mi,mid);
   PAY[k].status=PAY[k].totalPaid>=due?"paid":(PAY[k].totalPaid>0?"partial":"unpaid");
-  if(PAY[k].status==="paid"&&!PAY[k].completedDate)PAY[k].completedDate=date||tdy();
+  if(PAY[k].status==="paid"&&!PAY[k].completedDate)PAY[k].completedDate=now();
   if(PAY[k].status!=="paid")PAY[k].completedDate=null;
 }
 function removeLastPayment(mi,mid){
@@ -641,7 +643,7 @@ R.timeline=function(){
     for(var pIdx=0;pIdx<people.length;pIdx++){
       var person=people[pIdx],po=PAYOUT[payKey(i,person.mid)];
       var isSent=po&&po.sent;
-      var sentB=isSent?'<span class="badge bg" style="font-size:9px">✓ Sent '+fD(po.date)+'</span>':'';
+      var sentB=isSent?'<span class="badge bg" style="font-size:9px">✓ Sent '+fDT(po.date)+'</span>':'';
       var poBtn=isSent
         ?'<button class="bi" title="Undo" style="padding:5px 8px;font-size:10px;color:var(--r);border-color:#fde8e6;background:var(--rl)" data-act="unmarkPO" data-mi="'+i+'" data-mid="'+person.mid+'">↩</button>'
         :'<button class="chk sm" title="Mark sent" data-act="markPO" data-mi="'+i+'" data-mid="'+person.mid+'">✓</button>';
@@ -841,7 +843,7 @@ R.payments=function(){
         var gdue=payDue(mi,gm.id),gpst=payStatus(mi,gm.id),gpinf=getPay(mi,gm.id);
         var grm=REM[payKey(mi,gm.id)]||{count:0,lastDate:""};
         var gc=gpst==="paid"?"var(--g)":gpst==="partial"?"var(--o)":"var(--ln)";
-        var gsTxt=gpst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(gpinf.completedDate?' '+fD(gpinf.completedDate):'')+'</span>':
+        var gsTxt=gpst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(gpinf.completedDate?' '+fDT(gpinf.completedDate):'')+'</span>':
                     gpst==="partial"?'<span style="color:var(--o);font-weight:700">'+fmt(gpinf.totalPaid)+'/'+fmt(gdue)+'</span>':
                     '<span style="color:var(--t3)">Rs. '+fmt(gdue)+'</span>';
         var glt=(gpst!=="paid"&&isLate())?'<span class="badge br" style="font-size:9px">Late</span>':'';
@@ -867,7 +869,7 @@ R.payments=function(){
     var due=payDue(mi,m.id),pst=payStatus(mi,m.id),pinf=getPay(mi,m.id);
     var rm=REM[payKey(mi,m.id)]||{count:0,lastDate:""};
     var color=pst==="paid"?"var(--g)":pst==="partial"?"var(--o)":"var(--ln)";
-    var statusTxt=pst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(pinf.completedDate?' '+fD(pinf.completedDate):'')+'</span>':
+    var statusTxt=pst==="paid"?'<span style="color:var(--g);font-weight:700">✓ Paid'+(pinf.completedDate?' '+fDT(pinf.completedDate):'')+'</span>':
                    pst==="partial"?'<span style="color:var(--o);font-weight:700">Partial: '+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':
                    '<span style="color:var(--t3)">Unpaid: Rs. '+fmt(due)+'</span>';
     var lt=(pst!=="paid"&&isLate())?'<span class="badge br" style="font-size:10px">Late</span>':'';
@@ -925,7 +927,7 @@ document.addEventListener("click",function(e){
     var m=mBy(mid);if(!m)return;
     if(!m.phone){toast("⚠️ Phone add karein!");return}
     var rk=payKey(mi,mid);if(!REM[rk])REM[rk]={count:0,lastDate:""};
-    REM[rk].count++;REM[rk].lastDate=tdy();sv();
+    REM[rk].count++;REM[rk].lastDate=now();sv();
     var pinf=getPay(mi,mid);
     waOpen(m.phone,remMsg(m.name,S[mi].month,payDue(mi,mid),pinf.totalPaid));
     toast("📱 Reminder #"+REM[rk].count);svAll();
@@ -936,7 +938,7 @@ document.addEventListener("click",function(e){
       var m=up[i];if(!m.phone)continue;
       (function(m,d){setTimeout(function(){
         var rk=payKey(mi,m.id);if(!REM[rk])REM[rk]={count:0,lastDate:""};
-        REM[rk].count++;REM[rk].lastDate=tdy();
+        REM[rk].count++;REM[rk].lastDate=now();
         var pinf=getPay(mi,m.id);
         waOpen(m.phone,remMsg(m.name,S[mi].month,payDue(mi,m.id),pinf.totalPaid));
       },d)})(m,sent*1200);sent++;
@@ -947,7 +949,7 @@ document.addEventListener("click",function(e){
   }
 
   // ===== Feature 3: Per-person payout =====
-  else if(a==="markPO"){PAYOUT[payKey(mi,mid)]={sent:true,date:tdy()};svAll();toast("✅ Payout marked sent")}
+  else if(a==="markPO"){PAYOUT[payKey(mi,mid)]={sent:true,date:now()};svAll();toast("✅ Payout marked sent")}
   else if(a==="unmarkPO"){delete PAYOUT[payKey(mi,mid)];svAll();toast("↩ Payout reversed")}
   else if(a==="payoutMsg"){
     var m=mBy(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}
@@ -1090,7 +1092,11 @@ function openPayModal(mi,mid){
   var histHtml='';
   if(pinf.history&&pinf.history.length){
     histHtml='<div style="margin-top:10px"><div class="lbl">Payment History</div>';
-    for(var i=0;i<pinf.history.length;i++)histHtml+='<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f3ed;font-size:13px"><span style="color:var(--t3)">📅 '+fD(pinf.history[i].date)+'</span><span style="font-weight:600">Rs. '+fmt(pinf.history[i].amount)+'</span></div>';
+    for(var i=0;i<pinf.history.length;i++){
+      var he=pinf.history[i];
+      var recAt=he.recordedAt?'<div style="font-size:10px;color:var(--t3);margin-top:1px">⏱ Recorded: '+fDT(he.recordedAt)+'</div>':'';
+      histHtml+='<div style="padding:7px 0;border-bottom:1px solid #f5f3ed"><div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--t3)">📅 '+fD(he.date)+'</span><span style="font-size:13px;font-weight:600">Rs. '+fmt(he.amount)+'</span></div>'+recAt+'</div>';
+    }
     histHtml+='</div>';
   }
   openM('<div class="mdl-h"><h3>💰 '+m.name+'</h3><div class="mdl-d">'+S[mi].month+' • Due: Rs. '+fmt(due)+'</div></div><div class="mdl-b">'+
