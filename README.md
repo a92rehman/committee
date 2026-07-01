@@ -2,8 +2,6 @@
 
 A mobile-first Progressive Web App (PWA) to manage a Pakistani **committee** (ROSCA — Rotating Savings and Credit Association). Tracks members, monthly payments, payouts, and reminders — all synced in real time via Firebase.
 
-**Live:** https://a92rehman.github.io/committee/
-
 ---
 
 ## Features
