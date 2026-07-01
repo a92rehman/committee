@@ -706,7 +706,9 @@ R.members=function(){
     var m=M[i];
     if(inGroup[m.id]&&!hasSingle[m.id])continue; // pure-group members shown via group card
     var msl=mSlots(m.id);
-    var si=msl.length?msl[0].idx:9999;
+    // Use first SINGLE slot index so members who are also in a group sort by their own turn
+    var singleSlots=msl.filter(function(x){return x.type==="single";});
+    var si=singleSlots.length?singleSlots[0].idx:(msl.length?msl[0].idx:9999);
     items.push({type:'ind',sortIdx:si,member:m});
   }
   items.sort(function(a,b){return a.sortIdx-b.sortIdx;});
