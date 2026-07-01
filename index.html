@@ -686,24 +686,39 @@ R.members=function(){
     return aI-bI;
   });
 
+  // ── Build unified sorted item list ───────────────────────────────
+  // Each item: {type:'group', sortIdx, key} or {type:'ind', sortIdx, member}
+  var items=[];
+  var renderedGrpKeys={};
+  for(var gi=0;gi<groupKeys.length;gi++){
+    var gk=groupKeys[gi];
+    items.push({type:'group',sortIdx:groupByKey[gk].months[0].mi,key:gk});
+  }
+  for(var i=0;i<M.length;i++){
+    var m=M[i];
+    if(inGroup[m.id]&&!hasSingle[m.id])continue; // pure-group members shown via group card
+    var msl=mSlots(m.id);
+    var si=msl.length?msl[0].idx:9999;
+    items.push({type:'ind',sortIdx:si,member:m});
+  }
+  items.sort(function(a,b){return a.sortIdx-b.sortIdx;});
+
   var h='<div class="shdr"><div><h3>👥 Members</h3><small>'+M.length+' members • Pool: Rs. '+fmt(P$)+'</small></div><button class="sbtn" data-act="addMem">+ Add</button></div>';
 
-  // ── Group Committee Cards ─────────────────────────────────────────
-  if(groupKeys.length){
-    h+='<div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.8px;margin:8px 2px 6px">👥 Group Committees</div>';
-    for(var gi=0;gi<groupKeys.length;gi++){
-      var gk=groupKeys[gi],gv=groupByKey[gk];
+  for(var ii=0;ii<items.length;ii++){
+    var item=items[ii];
+
+    if(item.type==='group'){
+      var gv=groupByKey[item.key];
       var combinedMonthly=gv.parts.reduce(function(s,p){return s+(+p.share||0)},0);
       var monthLabels=gv.months.map(function(x){return x.month}).join(', ');
       var totalPayout=P$*gv.months.length;
-
       h+='<div class="card" style="border-left:3px solid #7c3aed;padding:13px 15px;background:linear-gradient(to right,#fdf4ff,#fff 85%)">';
       h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">';
       h+='<div><div style="font-size:13px;font-weight:700;color:#7c3aed">👥 Shared Committee</div>';
       h+='<div style="font-size:11px;color:var(--t3);margin-top:2px">📅 '+monthLabels+'</div></div>';
       h+='<span class="badge bpu">Rs. '+fmt(combinedMonthly)+'/mo</span>';
       h+='</div>';
-
       for(var pi=0;pi<gv.parts.length;pi++){
         var part=gv.parts[pi],mem=mBy(part.mid);
         if(!mem)continue;
@@ -724,53 +739,39 @@ R.members=function(){
         h+='</div>';
       }
       h+='</div>';
-    }
-  }
 
-  // ── Individual Member Cards ───────────────────────────────────────
-  // Show members who are NOT pure-group (i.e., have single slots OR are unassigned)
-  var shown=0,indHtml='';
-  for(var i=0;i<sortedM.length;i++){
-    var m=sortedM[i];
-    if(inGroup[m.id]&&!hasSingle[m.id])continue; // pure group member → shown above
-    shown++;
-    var slots=mSlots(m.id),total=mMonthly(m.id);
-    var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
-    var monthsHtml='';
-    if(!slots.length){
-      monthsHtml='<div style="margin-top:6px"><span class="badge br">⚠ No month assigned</span></div>';
     } else {
-      monthsHtml='<div style="margin-top:8px">';
-      for(var s=0;s<slots.length;s++){
-        var sl2=slots[s];
-        if(sl2.type==="single"){
-          monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">🎯 '+sl2.month+' — Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(sl2.share)+'</div></div>';
+      var m=item.member,slots=mSlots(m.id),total=mMonthly(m.id);
+      var is=INTRO[m.id]?'<span class="badge bg">✅ Intro sent</span>':'<span class="badge bo">📣 Pending</span>';
+      var monthsHtml='';
+      if(!slots.length){
+        monthsHtml='<div style="margin-top:6px"><span class="badge br">⚠ No month assigned</span></div>';
+      } else {
+        monthsHtml='<div style="margin-top:8px">';
+        for(var s=0;s<slots.length;s++){
+          if(slots[s].type==="single")
+            monthsHtml+='<div style="background:var(--gdl);border-radius:9px;padding:8px 10px;margin-bottom:6px"><div style="font-size:12px;font-weight:700;color:var(--gd)">🎯 '+slots[s].month+' — Full Turn</div><div style="font-size:11px;color:var(--t2);margin-top:2px">Payout: Rs. '+fmt(slots[s].share)+'</div></div>';
         }
+        monthsHtml+='</div>';
       }
-      monthsHtml+='</div>';
-    }
-    indHtml+='<div class="card" style="padding:13px 15px">'+
-      '<div style="display:flex;align-items:center;gap:11px">'+
-        '<div class="av">'+ini(m.name)+'</div>'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-size:14px;font-weight:700">'+m.name+'</div>'+
-          '<div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div>'+
-          '<div style="margin-top:3px">'+is+'</div>'+
+      h+='<div class="card" style="padding:13px 15px">'+
+        '<div style="display:flex;align-items:center;gap:11px">'+
+          '<div class="av">'+ini(m.name)+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:14px;font-weight:700">'+m.name+'</div>'+
+            '<div style="font-size:11px;color:var(--t3);margin-top:2px">💰 Rs. '+fmt(total)+'/mo • <span style="color:'+(m.phone?'var(--g)':'var(--o)')+'">📞 '+(m.phone||'No phone')+'</span></div>'+
+            '<div style="margin-top:3px">'+is+'</div>'+
+          '</div>'+
         '</div>'+
-      '</div>'+
-      monthsHtml+
-      '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">'+
-        '<button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button>'+
-        '<button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button>'+
-        '<button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+
-        '<button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button>'+
-      '</div>'+
-    '</div>';
-  }
-
-  if(shown>0){
-    if(groupKeys.length) h+='<div style="font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin:12px 2px 6px">👤 Individual Members</div>';
-    h+=indHtml;
+        monthsHtml+
+        '<div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">'+
+          '<button class="bi" style="flex:1" data-act="editMem" data-mid="'+m.id+'">✎ Edit</button>'+
+          '<button class="bi" style="flex:1" data-act="assignMo" data-mid="'+m.id+'">📅 Months</button>'+
+          '<button class="bi" data-act="intro1" data-mid="'+m.id+'">'+(INTRO[m.id]?'🔄 Resend':'📣 Intro')+'</button>'+
+          '<button class="bi" style="color:var(--r)" data-act="delMem" data-mid="'+m.id+'">🗑</button>'+
+        '</div>'+
+      '</div>';
+    }
   }
 
   el.innerHTML=h;
