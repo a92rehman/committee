@@ -6,7 +6,7 @@ This file is read automatically by Claude Code at the start of every session.
 
 ## Project Overview
 
-Single-file PWA (`index.html`) for managing a Pakistani committee (ROSCA). Deployed via GitHub Pages at https://a92rehman.github.io/committee/. All logic, styles, and markup are in one file — no build step, no framework, no dependencies.
+Single-file PWA (`index.html`) for managing a Pakistani committee (ROSCA). Deployed via GitHub Pages. All logic, styles, and markup are in one file — no build step, no framework, no dependencies.
 
 ## Architecture
 
