@@ -230,6 +230,8 @@ function tdy(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1
 function fD(s){if(!s)return"";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0].slice(2)}
 function dAgo(s){if(!s)return"";var d=(new Date()-new Date(s))/864e5;return d<1?"aaj":d<2?"kal":Math.floor(d)+" din pehle"}
 function gid(){return"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function parseMonthIdx(s){if(!s)return 99999;var p=s.trim().split(/\s+/);if(p.length<2)return 99999;var mn=p[0].toLowerCase().substring(0,3),yr=parseInt(p[p.length-1])||0;var mi=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(mn);return mi<0?99999:yr*12+mi;}
+function sortSchedule(){var order=[];for(var i=0;i<S.length;i++)order.push(i);order.sort(function(a,b){return parseMonthIdx(S[a].month)-parseMonthIdx(S[b].month);});var newS=[],newPay={},newRem={},newPO={},newN={};for(var ni=0;ni<order.length;ni++){var oi=order[ni];newS.push(S[oi]);for(var j=0;j<M.length;j++){var mid=M[j].id,ok=oi+"-"+mid,nk=ni+"-"+mid;if(PAY[ok])newPay[nk]=PAY[ok];if(REM[ok])newRem[nk]=REM[ok];if(PAYOUT[ok])newPO[nk]=PAYOUT[ok];}if(NOTES[oi]!==undefined)newN[ni]=NOTES[oi];}S=newS;PAY=newPay;REM=newRem;PAYOUT=newPO;NOTES=newN;}
 
 function curMo(){
   var d=new Date(),y=d.getFullYear(),m=d.getMonth();
@@ -426,6 +428,7 @@ function applyD(d){
   INTRO=d.introSent||{};PAYOUT=d.payouts||{};NOTES=d.notes||{};
   if(d.appSettings)SET=d.appSettings;
   for(var i=0;i<S.length;i++){if(!S[i].slots)S[i].slots=[];for(var j=0;j<S[i].slots.length;j++)if(S[i].slots[j].type==="group"&&!S[i].slots[j].parts)S[i].slots[j].parts=[];}
+  sortSchedule();
   return true;
 }
 function sv(){
@@ -555,8 +558,8 @@ R.home=function(){
 
   // Pending/partial list
   if(up.length>0&&(isCur||isPast)){
-    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--o)">⏳ Pending / Partial ('+up.length+')</div><button class="bwa" style="padding:6px 12px;font-size:11px" data-act="remAll" data-mi="'+mi+'">📢 Remind All</button></div>';
-    // Build permanent group map for the pending list (same approach as payments tab)
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin:4px 2px 8px"><div style="font-size:13px;font-weight:700;color:var(--o)">⏳ Pending / Partial ('+up.length+')</div><button class="bwa" style="padding:6px 12px;font-size:11px" data-act="remAll" data-mi="'+mi+'">📢 Remind All</button></div>';
+    // Build permanent group map (same as payments tab)
     var hmGrpKey={},hmGrpParts={};
     for(var si2=0;si2<S.length;si2++){var hsl=S[si2].slots||[];for(var j2=0;j2<hsl.length;j2++){if(hsl[j2].type==="group"){var hp=hsl[j2].parts||[],hk=hp.map(function(p){return p.mid}).sort().join("|");for(var k2=0;k2<hp.length;k2++){if(!hmGrpKey[hp[k2].mid]){hmGrpKey[hp[k2].mid]=hk;hmGrpParts[hk]=hp;}}}}}
     var hmDone={};
@@ -567,8 +570,13 @@ R.home=function(){
         if(hmDone[hk])continue;
         hmDone[hk]=true;
         var hparts=hmGrpParts[hk]||[];
-        // Only show group sub-rows whose members are actually in the up[] list
         var hupParts=hparts.filter(function(p){return up.some(function(u){return u.id===p.mid})});
+        // Combined totals for header
+        var hTotalDue=0,hTotalPaid=0;
+        for(var hi=0;hi<hupParts.length;hi++){var hm2=mBy(hupParts[hi].mid);if(hm2){hTotalDue+=payDue(mi,hm2.id);hTotalPaid+=getPay(mi,hm2.id).totalPaid||0;}}
+        var hGrpNames=hupParts.map(function(p){var mm=mBy(p.mid);return mm?mm.name:''}).filter(Boolean).join(' + ');
+        h+='<div class="card" style="background:linear-gradient(135deg,#fdf4ff,#f9f0ff);border-color:#d8b4fe;padding:12px 14px;margin-bottom:10px">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.6px">👥 Group Committee</div><div style="font-size:12px;color:var(--t2);margin-top:2px">'+hGrpNames+'</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;color:#7c3aed">Rs. '+fmt(hTotalPaid)+'/'+fmt(hTotalDue)+'</div><div style="font-size:10px;color:var(--t3)">paid of due</div></div></div>';
         for(var hi=0;hi<hupParts.length;hi++){
           var hm=mBy(hupParts[hi].mid);if(!hm)continue;
           var hpst=payStatus(mi,hm.id),hdue=payDue(mi,hm.id),hpinf=getPay(mi,hm.id);
@@ -576,23 +584,23 @@ R.home=function(){
           var hlt=isCur&&isLate()?'<span class="badge br" style="font-size:9px">Late</span>':'';
           var hrc=hrm.count>0?'<span class="badge bb" style="font-size:9px">📱'+hrm.count+'x</span>':'';
           var hst=hpst==="partial"?'<span class="badge bo" style="font-size:9px">'+fmt(hpinf.totalPaid)+'/'+fmt(hdue)+'</span>':'';
-          h+='<div class="row" style="'+(hi>0?'background:linear-gradient(to right,#fdf4ff,transparent 70%)':'')+'">';
+          h+='<div class="row">';
           h+='<div class="av" style="background:#f3e8ff;color:#7c3aed">'+ini(hm.name)+'</div>';
-          h+='<div style="flex:1;min-width:0"><div class="rn">'+hm.name+' <span style="font-size:9px;color:#7c3aed;font-weight:600">👥</span></div><div class="ra">Rs. '+fmt(hdue)+'  '+hst+hlt+hrc+'</div></div>';
+          h+='<div style="flex:1;min-width:0"><div class="rn">'+hm.name+'</div><div class="ra">Rs. '+fmt(hdue)+'  '+hst+hlt+hrc+'</div></div>';
           h+='<button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+hm.id+'">💰</button>';
           h+='<button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+hm.id+'" data-mi="'+mi+'">📱</button>';
           h+='</div>';
         }
+        h+='</div>';
       } else {
         var pst=payStatus(mi,m.id),due=payDue(mi,m.id),pinf=getPay(mi,m.id);
         var rm=REM[payKey(mi,m.id)]||{count:0};
         var lt=isCur&&isLate()?'<span class="badge br" style="font-size:9px">Late</span>':'';
         var rc=rm.count>0?'<span class="badge bb" style="font-size:9px">📱'+rm.count+'x</span>':'';
         var stBadge=pst==="partial"?'<span class="badge bo" style="font-size:9px">'+fmt(pinf.totalPaid)+'/'+fmt(due)+'</span>':'';
-        h+='<div class="row"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(due)+'  '+stBadge+lt+rc+'</div></div><button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button><button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div>';
+        h+='<div class="card" style="padding:12px 14px;margin-bottom:10px"><div class="row" style="padding:0;border:none"><div class="av">'+ini(m.name)+'</div><div style="flex:1;min-width:0"><div class="rn">'+m.name+'</div><div class="ra">Rs. '+fmt(due)+'  '+stBadge+lt+rc+'</div></div><button class="bi" style="padding:6px 9px;font-size:11px" data-act="payModal" data-mi="'+mi+'" data-mid="'+m.id+'">💰</button><button class="bwa" style="padding:6px 9px" data-act="rem1" data-mid="'+m.id+'" data-mi="'+mi+'">📱</button></div></div>';
       }
     }
-    h+='</div>';
   }
 
   var allSent=M.every(function(m){return INTRO[m.id]});
@@ -999,7 +1007,7 @@ document.addEventListener("click",function(e){
   else if(a==="addMonth"){openAddMonth()}
   else if(a==="doAddMonth"){
     var nm=document.getElementById("nm-mo").value.trim()||"Month "+(S.length+1);
-    S.push({month:nm,slots:[]});svAll();closeM();updHdr();toast("✅ "+nm+" added");
+    S.push({month:nm,slots:[]});sortSchedule();svAll();closeM();updHdr();toast("✅ "+nm+" added");
   }
   else if(a==="editNote"){openNote(idx)}
   else if(a==="saveNote"){saveNoteF(idx)}
@@ -1370,7 +1378,7 @@ function openStart(){var yo='',mo='';for(var y=2024;y<=2030;y++)yo+='<option val
 function saveStart(){
   SET.startYear=parseInt(document.getElementById("s-y").value);SET.startMonth=parseInt(document.getElementById("s-m").value);
   for(var i=0;i<S.length;i++){var y=SET.startYear+Math.floor((SET.startMonth+i)/12);var m=(SET.startMonth+i)%12;S[i].month=MFULL[m]+" "+y;}
-  selMo=curMo();svAll();closeM();updHdr();toast("✅ Updated");
+  sortSchedule();selMo=curMo();svAll();closeM();updHdr();toast("✅ Updated");
 }
 function openDl(){var o='';for(var d=1;d<=28;d++)o+='<option value="'+d+'"'+(d===dlDay()?' selected':'')+'>'+d+'</option>';openM('<div class="mdl-h"><h3>⏰ Deadline</h3></div><div class="mdl-b"><div class="fld"><label class="lbl">Day</label><select id="dl-d" class="sel" style="margin:0">'+o+'</select></div></div><div class="mdl-f"><button class="bs" data-act="closeM">Cancel</button><button class="bp" data-act="saveDl">Save</button></div>')}
 function saveDl(){SET.deadlineDay=parseInt(document.getElementById("dl-d").value);sv();closeM();toast("✅ "+SET.deadlineDay+" tareekh")}
