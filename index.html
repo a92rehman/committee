@@ -438,28 +438,46 @@ function sv(){
 function svAll(){sv();try{R.home();R.timeline();R.members();R.payments()}catch(e){console.error(e)}}
 
 function setSS(s,l){var d=document.getElementById("sd"),lb=document.getElementById("sl");if(d)d.className="sync-dot "+s;if(lb)lb.textContent=l||(s==="ok"?"Synced":s==="syncing"?"Syncing...":"Offline")}
+var _pushRetry=0;
 function fbPush(){
-  // SAFETY GUARD: never push if this looks like an accidental wipe
-  // (e.g. local state somehow has 0 members while we know data existed before).
-  if(!M||M.length===0){
-    console.warn("Blocked fbPush: member list is empty, refusing to overwrite Firebase.");
-    setSS("err","Blocked (empty data)");
-    return;
-  }
+  if(!M||M.length===0){setSS("err","Blocked (empty)");return;}
   setSS("syncing");
-  fetch(FB+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(allD())}).then(function(r){setSS(r.ok?"ok":"err")}).catch(function(){setSS("err","Offline")});
+  fetch(FB+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(allD())})
+    .then(function(r){
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      _pushRetry=0;setSS("ok");
+    })
+    .catch(function(err){
+      setSS("err","Offline");
+      if(_pushRetry<3){_pushRetry++;clearTimeout(_st);_st=setTimeout(fbPush,Math.pow(2,_pushRetry)*2000);}
+    });
 }
-function fbPull(){return fetch(FB+'.json').then(function(r){return r.json()}).then(function(d){if(applyD(d))lvSave()})}
+function fbPull(){
+  return fetch(FB+'.json')
+    .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(d){if(applyD(d))lvSave();});
+}
+var _es=null,_esRetry=0;
 function fbListen(){
-  try{var es=new EventSource(FB+'.json');
-    es.addEventListener('put',function(e){try{var d=JSON.parse(e.data).data;if(!d||!d.members)return;
-      if(JSON.stringify(d.payments)===JSON.stringify(PAY)&&JSON.stringify(d.members)===JSON.stringify(M))return;
-      _rem=true;applyD(d);lvSave();setSS("ok");
-      try{R.home();R.timeline();R.members();R.payments()}catch(rex){}
-      toast("🔄 Synced");_rem=false;
-    }catch(ex){}});
-    es.onerror=function(){setSS("err","Offline")};
-  }catch(ex){setSS("err","Offline")}
+  if(_es){try{_es.close()}catch(x){}_es=null;}
+  try{
+    _es=new EventSource(FB+'.json');
+    _es.addEventListener('put',function(e){
+      try{
+        var d=JSON.parse(e.data).data;if(!d||!d.members)return;
+        if(JSON.stringify(d.payments)===JSON.stringify(PAY)&&JSON.stringify(d.members)===JSON.stringify(M))return;
+        _rem=true;applyD(d);lvSave();setSS("ok");
+        try{R.home();R.timeline();R.members();R.payments()}catch(rex){}
+        toast("🔄 Synced");_rem=false;_esRetry=0;
+      }catch(ex){}
+    });
+    _es.onerror=function(){
+      setSS("err","Offline");
+      _es.close();_es=null;
+      _esRetry=Math.min(_esRetry+1,6);
+      setTimeout(fbListen,Math.pow(2,_esRetry)*1000); // exponential backoff, max ~64s
+    };
+  }catch(ex){setSS("err","Offline");}
 }
 
 // ============================
