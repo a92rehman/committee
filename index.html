@@ -215,6 +215,7 @@ var INTRO=ld("cm2_intro",{});       // {mid:true}
 var PAYOUT=ld("cm2_payout",{});     // payouts: key = mi+"-"+mid -> {sent:true,date}  (per-person, even within a group slot)
 var NOTES=ld("cm2_notes",{});       // {mi: "text"}
 var SET=ld("cm2_set",{startYear:2026,startMonth:6,deadlineDay:5,bankDetails:{bank:"",account:"",name:""}});
+var ACTIVITY=ld("cm2_act",[]);      // activity log: [{id,type,name,month,amount,at}] — capped at 500
 
 var selMo=curMo();
 var _st=null,_rem=false;
@@ -231,6 +232,7 @@ function now(){return new Date().toISOString()}
 function fD(s){if(!s)return"";var ds=s.length>10?s.substring(0,10):s;var p=ds.split("-");if(p.length<3)return s;return p[2]+"/"+p[1]+"/"+p[0].slice(2)}
 function fDT(s){if(!s)return"";var d=new Date(s);if(isNaN(d.getTime()))return fD(s);var day=String(d.getDate()).padStart(2,"0"),mon=String(d.getMonth()+1).padStart(2,"0"),yr=String(d.getFullYear()).slice(2),hr=String(d.getHours()).padStart(2,"0"),min=String(d.getMinutes()).padStart(2,"0");return day+"/"+mon+"/"+yr+" "+hr+":"+min;}
 function dAgo(s){if(!s)return"";var d=(new Date()-new Date(s))/864e5;return d<1?"aaj":d<2?"kal":Math.floor(d)+" din pehle"}
+function logAct(type,info){var e={id:gid(),type:type,at:now()};if(info)Object.keys(info).forEach(function(k){e[k]=info[k];});ACTIVITY.unshift(e);if(ACTIVITY.length>500)ACTIVITY.length=500;localStorage.setItem("cm2_act",JSON.stringify(ACTIVITY));}
 function gid(){return"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
 function parseMonthIdx(s){if(!s)return 99999;var p=s.trim().split(/\s+/);if(p.length<2)return 99999;var mn=p[0].toLowerCase().substring(0,3),yr=parseInt(p[p.length-1])||0;var mi=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(mn);return mi<0?99999:yr*12+mi;}
 function sortSchedule(){var order=[];for(var i=0;i<S.length;i++)order.push(i);order.sort(function(a,b){return parseMonthIdx(S[a].month)-parseMonthIdx(S[b].month);});var newS=[],newPay={},newRem={},newPO={},newN={};for(var ni=0;ni<order.length;ni++){var oi=order[ni];newS.push(S[oi]);for(var j=0;j<M.length;j++){var mid=M[j].id,ok=oi+"-"+mid,nk=ni+"-"+mid;if(PAY[ok])newPay[nk]=PAY[ok];if(REM[ok])newRem[nk]=REM[ok];if(PAYOUT[ok])newPO[nk]=PAYOUT[ok];}if(NOTES[oi]!==undefined)newN[ni]=NOTES[oi];}S=newS;PAY=newPay;REM=newRem;PAYOUT=newPO;NOTES=newN;}
@@ -422,13 +424,15 @@ function lvSave(){
   localStorage.setItem("cm2_pay",JSON.stringify(PAY));localStorage.setItem("cm2_rem",JSON.stringify(REM));
   localStorage.setItem("cm2_intro",JSON.stringify(INTRO));localStorage.setItem("cm2_payout",JSON.stringify(PAYOUT));
   localStorage.setItem("cm2_notes",JSON.stringify(NOTES));localStorage.setItem("cm2_set",JSON.stringify(SET));
+  localStorage.setItem("cm2_act",JSON.stringify(ACTIVITY));
 }
-function allD(){return{members:M,schedule:S,payments:PAY,reminders:REM,introSent:INTRO,payouts:PAYOUT,notes:NOTES,appSettings:SET}}
+function allD(){return{members:M,schedule:S,payments:PAY,reminders:REM,introSent:INTRO,payouts:PAYOUT,notes:NOTES,appSettings:SET,activityLog:ACTIVITY}}
 function applyD(d){
   if(!d||!d.members)return false;
   M=d.members||[];S=d.schedule||[];PAY=d.payments||{};REM=d.reminders||{};
   INTRO=d.introSent||{};PAYOUT=d.payouts||{};NOTES=d.notes||{};
   if(d.appSettings)SET=d.appSettings;
+  if(d.activityLog)ACTIVITY=d.activityLog;
   for(var i=0;i<S.length;i++){if(!S[i].slots)S[i].slots=[];for(var j=0;j<S[i].slots.length;j++)if(S[i].slots[j].type==="group"&&!S[i].slots[j].parts)S[i].slots[j].parts=[];}
   sortSchedule();
   return true;
@@ -646,7 +650,7 @@ R.timeline=function(){
       var sentB=isSent?'<span class="badge bg" style="font-size:9px">✓ Sent '+fDT(po.date)+'</span>':'';
       var poBtn=isSent
         ?'<button class="bi" title="Undo" style="padding:5px 8px;font-size:10px;color:var(--r);border-color:#fde8e6;background:var(--rl)" data-act="unmarkPO" data-mi="'+i+'" data-mid="'+person.mid+'">↩</button>'
-        :'<button class="chk sm" title="Mark sent" data-act="markPO" data-mi="'+i+'" data-mid="'+person.mid+'">✓</button>';
+        :'<button class="chk sm" title="Mark sent" data-act="markPO" data-mi="'+i+'" data-mid="'+person.mid+'" data-amt="'+person.amount+'">✓</button>';
       payoutRows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(pIdx<people.length-1?'border-bottom:1px solid #f9f7f2':'')+'">'
         +'<div class="av sm">'+ini(person.name)+'</div>'
         +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+person.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(person.amount)+'  '+sentB+'</div></div>'
@@ -911,14 +915,28 @@ document.addEventListener("click",function(e){
     var amt=parseInt(document.getElementById("pm-amt").value)||0;
     var date=document.getElementById("pm-date").value||tdy();
     if(amt<=0){toast("⚠️ Amount likhein");return}
-    addPayment(mi,mid,amt,date);svAll();closeM();toast("✅ Payment added");
+    var mn=S[mi]?S[mi].month:"",mm=mBy(mid);
+    addPayment(mi,mid,amt,date);
+    logAct("payment_received",{name:mm?mm.name:"",month:mn,amount:amt,date:date});
+    svAll();closeM();toast("✅ Payment added");
   }
-  else if(a==="undoPay"){removeLastPayment(mi,mid);svAll();closeM();toast("↺ Last payment removed")}
-  else if(a==="clearPay"){clearPayment(mi,mid);svAll();closeM();toast("↺ Payment cleared")}
+  else if(a==="undoPay"){
+    var mm=mBy(mid),mn=S[mi]?S[mi].month:"",lh=getPay(mi,mid).history;
+    var lastAmt=lh&&lh.length?lh[lh.length-1].amount:0;
+    removeLastPayment(mi,mid);
+    logAct("payment_undone",{name:mm?mm.name:"",month:mn,amount:lastAmt});
+    svAll();closeM();toast("↺ Last payment removed");
+  }
+  else if(a==="clearPay"){
+    var mm=mBy(mid),mn=S[mi]?S[mi].month:"";
+    logAct("payment_cleared",{name:mm?mm.name:"",month:mn});
+    clearPayment(mi,mid);svAll();closeM();toast("↺ Payment cleared");
+  }
   else if(a==="markFullPaid"){
     var due=payDue(mi,mid),pinf=getPay(mi,mid);
     var remaining=due-pinf.totalPaid;
-    if(remaining>0)addPayment(mi,mid,remaining,tdy());
+    var mm=mBy(mid),mn=S[mi]?S[mi].month:"";
+    if(remaining>0){addPayment(mi,mid,remaining,tdy());logAct("payment_received",{name:mm?mm.name:"",month:mn,amount:remaining,date:tdy()});}
     svAll();closeM();toast("✅ Fully paid");
   }
 
@@ -929,6 +947,7 @@ document.addEventListener("click",function(e){
     var rk=payKey(mi,mid);if(!REM[rk])REM[rk]={count:0,lastDate:""};
     REM[rk].count++;REM[rk].lastDate=now();sv();
     var pinf=getPay(mi,mid);
+    logAct("reminder_sent",{name:m.name,month:S[mi]?S[mi].month:"",amount:payDue(mi,mid),count:REM[rk].count});
     waOpen(m.phone,remMsg(m.name,S[mi].month,payDue(mi,mid),pinf.totalPaid));
     toast("📱 Reminder #"+REM[rk].count);svAll();
   }
@@ -949,8 +968,17 @@ document.addEventListener("click",function(e){
   }
 
   // ===== Feature 3: Per-person payout =====
-  else if(a==="markPO"){PAYOUT[payKey(mi,mid)]={sent:true,date:now()};svAll();toast("✅ Payout marked sent")}
-  else if(a==="unmarkPO"){delete PAYOUT[payKey(mi,mid)];svAll();toast("↩ Payout reversed")}
+  else if(a==="markPO"){
+    var mm=mBy(mid),mn=S[mi]?S[mi].month:"",poAmt=parseInt(b.dataset.amt)||0;
+    PAYOUT[payKey(mi,mid)]={sent:true,date:now()};
+    logAct("payout_sent",{name:mm?mm.name:"",month:mn,amount:poAmt});
+    svAll();toast("✅ Payout marked sent");
+  }
+  else if(a==="unmarkPO"){
+    var mm=mBy(mid),mn=S[mi]?S[mi].month:"";
+    logAct("payout_reversed",{name:mm?mm.name:"",month:mn});
+    delete PAYOUT[payKey(mi,mid)];svAll();toast("↩ Payout reversed");
+  }
   else if(a==="payoutMsg"){
     var m=mBy(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}
     var amt=parseInt(b.dataset.amt)||0;
@@ -1028,6 +1056,7 @@ document.addEventListener("click",function(e){
 
   // ===== Settings =====
   else if(a==="settings"){openSet()}
+  else if(a==="showActLog"){openActLog()}
   else if(a==="editBank"){openBank()}
   else if(a==="saveBank"){saveBank()}
   else if(a==="editStart"){openStart()}
@@ -1368,6 +1397,39 @@ function openAddMonth(){
 // ============================
 // SETTINGS
 // ============================
+function openActLog(){
+  var icons={payment_received:'💰',payment_undone:'↺',payment_cleared:'🗑',payout_sent:'🏦',payout_reversed:'↩',reminder_sent:'📱'};
+  var labels={payment_received:'Payment Received',payment_undone:'Payment Undone',payment_cleared:'Payment Cleared',payout_sent:'Payout Sent',payout_reversed:'Payout Reversed',reminder_sent:'Reminder Sent'};
+  var colors={payment_received:'var(--g)',payment_undone:'var(--o)',payment_cleared:'var(--r)',payout_sent:'#7c3aed',payout_reversed:'var(--r)',reminder_sent:'#2563eb'};
+  var rows='';
+  if(!ACTIVITY.length){rows='<div style="text-align:center;padding:32px 0;color:var(--t3);font-size:13px">No activity yet</div>';}
+  else{
+    var lastDay='';
+    for(var i=0;i<ACTIVITY.length;i++){
+      var e=ACTIVITY[i];
+      var dayStr=fD(e.at);
+      if(dayStr!==lastDay){
+        rows+='<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;padding:10px 0 6px'+(lastDay?';margin-top:4px':'')+'">'+dayStr+'</div>';
+        lastDay=dayStr;
+      }
+      var ic=icons[e.type]||'•',lb=labels[e.type]||e.type,cl=colors[e.type]||'var(--t2)';
+      var timeStr=e.at?fDT(e.at).split(' ')[1]:'';
+      var amtStr=e.amount?'<span style="font-weight:700;color:'+cl+'"> Rs. '+fmt(e.amount)+'</span>':'';
+      var moStr=e.month?'<span style="color:var(--t3)"> · '+e.month+'</span>':'';
+      rows+='<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f5f3ed">'
+        +'<div style="width:28px;height:28px;border-radius:8px;background:'+cl+'18;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">'+ic+'</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:12px;font-weight:600;color:'+cl+'">'+lb+'</div>'
+          +'<div style="font-size:13px;margin-top:1px">'+(e.name||'')+''+amtStr+moStr+'</div>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--t3);flex-shrink:0;padding-top:2px">'+timeStr+'</div>'
+        +'</div>';
+    }
+  }
+  openM('<div class="mdl-h"><h3>📋 Activity Log</h3><div class="mdl-d">'+ACTIVITY.length+' events · last 500 saved</div></div>'
+    +'<div class="mdl-b">'+rows+'</div>'
+    +'<div class="mdl-f"><button class="bs" style="width:100%" data-act="closeM">Close</button></div>');
+}
 function openSet(){
   var at=0;for(var i=0;i<S.length;i++)at+=pdTotal(i);
   var P$=totalPool(),exp=P$*S.length,pct=exp?Math.round(at/exp*100):0;
@@ -1376,6 +1438,7 @@ function openSet(){
     '<div style="padding:14px;background:linear-gradient(135deg,var(--gl),#fff);border-radius:12px;margin-bottom:16px"><div class="sl">Total Collected</div><div style="font-size:22px;font-weight:800;color:var(--g);margin-top:3px">Rs. '+fmt(at)+'</div><div style="font-size:12px;color:var(--t2);margin-top:2px">of Rs. '+fmt(exp)+' ('+pct+'%)</div></div>'+
     '</div>'+
     '<div style="border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)">'+
+      '<div class="sr" data-act="showActLog"><div class="sr-i">📋</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Activity Log</div><div style="font-size:11px;color:var(--t3)">'+ACTIVITY.length+' events recorded</div></div></div>'+
       '<div class="sr" data-act="export"><div class="sr-i">📤</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Backup</div><div style="font-size:11px;color:var(--t3)">JSON download</div></div></div>'+
       '<div class="sr" data-act="import"><div class="sr-i">📥</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Restore</div><div style="font-size:11px;color:var(--t3)">Backup se wapas</div></div></div>'+
       '<div class="sr" data-act="sync"><div class="sr-i">🔄</div><div style="flex:1"><div style="font-size:14px;font-weight:600">Sync</div><div style="font-size:11px;color:var(--t3)">Firebase se pull</div></div></div>'+
