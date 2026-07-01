@@ -640,8 +640,17 @@ R.timeline=function(){
     var totalPayout=people.reduce(function(s,p){return s+p.amount},0);
     for(var pIdx=0;pIdx<people.length;pIdx++){
       var person=people[pIdx],po=PAYOUT[payKey(i,person.mid)];
-      var sentB=po&&po.sent?'<span class="badge bg" style="font-size:9px">✓ Sent '+fD(po.date)+'</span>':'';
-      payoutRows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(pIdx<people.length-1?'border-bottom:1px solid #f9f7f2':'')+'"><div class="av sm">'+ini(person.name)+'</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+person.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(person.amount)+' '+sentB+'</div></div>'+(po&&po.sent?'':'<button class="chk sm" data-act="markPO" data-mi="'+i+'" data-mid="'+person.mid+'">✓</button>')+'<button class="bi" style="padding:5px 8px;font-size:10px" data-act="payoutMsg" data-mi="'+i+'" data-mid="'+person.mid+'" data-amt="'+person.amount+'">📱</button></div>';
+      var isSent=po&&po.sent;
+      var sentB=isSent?'<span class="badge bg" style="font-size:9px">✓ Sent '+fD(po.date)+'</span>':'';
+      var poBtn=isSent
+        ?'<button class="bi" title="Undo" style="padding:5px 8px;font-size:10px;color:var(--r);border-color:#fde8e6;background:var(--rl)" data-act="unmarkPO" data-mi="'+i+'" data-mid="'+person.mid+'">↩</button>'
+        :'<button class="chk sm" title="Mark sent" data-act="markPO" data-mi="'+i+'" data-mid="'+person.mid+'">✓</button>';
+      payoutRows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(pIdx<people.length-1?'border-bottom:1px solid #f9f7f2':'')+'">'
+        +'<div class="av sm">'+ini(person.name)+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+person.name+'</div><div style="font-size:11px;color:var(--t3)">Rs. '+fmt(person.amount)+'  '+sentB+'</div></div>'
+        +poBtn
+        +'<button class="bi" style="padding:5px 8px;font-size:10px" data-act="payoutMsg" data-mi="'+i+'" data-mid="'+person.mid+'" data-amt="'+person.amount+'">📱</button>'
+        +'</div>';
     }
 
     h+='<div class="card tl '+cls+'"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0"><div class="tl-tag">'+tag+'</div><div class="tl-mo">'+s.month+'</div><div style="margin-top:4px">'+recBadges+'</div>'+nt+'</div><div style="display:flex;gap:6px;flex-shrink:0"><button class="bi" data-act="editMo" data-idx="'+i+'" style="font-size:11px;padding:5px 9px">✎</button><button class="bi" data-act="editNote" data-idx="'+i+'" style="font-size:11px;padding:5px 9px">📝</button><button class="bi" style="font-size:11px;padding:5px 9px;color:var(--r)" data-act="delMonth" data-idx="'+i+'">🗑</button></div></div>';
@@ -938,7 +947,8 @@ document.addEventListener("click",function(e){
   }
 
   // ===== Feature 3: Per-person payout =====
-  else if(a==="markPO"){PAYOUT[payKey(mi,mid)]={sent:true,date:tdy()};svAll();toast("✅ Marked sent")}
+  else if(a==="markPO"){PAYOUT[payKey(mi,mid)]={sent:true,date:tdy()};svAll();toast("✅ Payout marked sent")}
+  else if(a==="unmarkPO"){delete PAYOUT[payKey(mi,mid)];svAll();toast("↩ Payout reversed")}
   else if(a==="payoutMsg"){
     var m=mBy(mid);if(!m||!m.phone){toast("⚠️ Phone add karein!");return}
     var amt=parseInt(b.dataset.amt)||0;
